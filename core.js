@@ -65,16 +65,6 @@ function showSearchedCourses(searchedCourseList, dept){
             + "-" + searchedCourseList[i].CourseData.number
             + ": " + searchedCourseList[i].CourseData.title
             )
-            // var courseButton = document.createElement("button");
-            // courseButton.className = "searchResultButton";
-            // courseButton.appendChild(document.createTextNode(
-            //     searchedCourseList[i].CourseData.prefix
-            //     + "-" + searchedCourseList[i].CourseData.number
-            //     + ": " + searchedCourseList[i].CourseData.title));
-            //     // Add units later
-
-            // //Add outer button to the div
-            // searchedCourse.appendChild(courseButton);
             
             //Add sections to this course
             var sectionsDiv = document.createElement("div");
@@ -115,15 +105,14 @@ function showSearchedCourses(searchedCourseList, dept){
     var accordion = document.getElementsByClassName("searchResultButton");
     for (i=0; i<accordion.length; i++) {
         accordion[i].addEventListener('click', function () {
-            this.classList.toggle('active');
-            var panel = this.nextElementSibling;
-            if (panel.style.display === "block") {
-                panel.style.display = "none";
-            } else {
-                panel.style.display = "block";
-            }
-        })
+            toggleShow(this.nextElementSibling);})
     }
+}
+
+function toggleShow(element){
+    if (element.style.display == "block"){
+        element.style.display = "none";}
+    else {element.style.display = "block";}
 }
 
 var term = "20223";
