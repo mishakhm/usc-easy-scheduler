@@ -63,9 +63,17 @@ function showSearchedCourses(searchedCourseList, dept){
             + ": " + searchedCourseList[i].CourseData.title
             )
             
-            //Add sections to this course
-            var sectionsDiv = document.createElement("div");
-            sectionsDiv.className = "searchSectionsDiv";
+            //Add course info
+            var searchedCourseInfo = document.createElement("div");
+            searchedCourseInfo.className = "searchedCourseInfo";
+            //Add pre-req and co-req info
+            if (typeof searchedCourseList[i].CourseData.prereq_text == "string"){
+                addElement("div", "", searchedCourseInfo,
+                "Pre-reqs: " + searchedCourseList[i].CourseData.prereq_text)}
+            if (typeof searchedCourseList[i].CourseData.coreq_text == "string"){
+                addElement("div", "", searchedCourseInfo,
+                "Co-reqs: " + searchedCourseList[i].CourseData.coreq_text)}
+            //Add all course sections to info
             for(let j = 0; j<searchedCourseList[i].CourseData.SectionData.length; j++){
                 var section = document.createElement("div");
                 section.className = "searchSection";
@@ -91,9 +99,9 @@ function showSearchedCourses(searchedCourseList, dept){
                 searchedCourseList[i].CourseData.SectionData[j].number_registered
                 + "/" + searchedCourseList[i].CourseData.SectionData[j].spaces_available);
 
-                sectionsDiv.appendChild(section);
+                searchedCourseInfo.appendChild(section);
             }
-            searchedCourse.appendChild(sectionsDiv);
+            searchedCourse.appendChild(searchedCourseInfo);
             //Add the whole course div to the results
             document.getElementById("searchResultsContainer").appendChild(searchedCourse);
         }

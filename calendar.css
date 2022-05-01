@@ -57,7 +57,7 @@
 .searchResultButton:hover{
     background-color: #eaeaea;
 }
-.searchSectionsDiv{
+.searchedCourseInfo{
     display: none;
 }
 .searchSection{
