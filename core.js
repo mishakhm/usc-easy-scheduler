@@ -90,9 +90,16 @@ function showSearchedCourses(searchedCourseList, dept){
 
                 //Check if an instructor is listed for the course, and either display their name or a message
                 if (typeof searchedCourseList[i].CourseData.SectionData[j].instructor != "undefined"){
-                    addElement("p", "", section, 
-                    searchedCourseList[i].CourseData.SectionData[j].instructor.last_name
-                    + ", " + searchedCourseList[i].CourseData.SectionData[j].instructor.first_name);}
+                    if(Array.isArray(searchedCourseList[i].CourseData.SectionData[j].instructor)){
+                        for(let k = 0; k<searchedCourseList[i].CourseData.SectionData[j].instructor.length;k++){
+                            addElement("p", "", section, 
+                            searchedCourseList[i].CourseData.SectionData[j].instructor[k].last_name
+                            + ", " + searchedCourseList[i].CourseData.SectionData[j].instructor[k].first_name);}
+                    }
+                    else{
+                        addElement("p", "", section, 
+                        searchedCourseList[i].CourseData.SectionData[j].instructor.last_name
+                        + ", " + searchedCourseList[i].CourseData.SectionData[j].instructor.first_name);}}
                 else{addElement("p", "", section, "No instructor listed");}
 
                 addElement("p", "", section, 
