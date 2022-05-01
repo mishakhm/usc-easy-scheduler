@@ -28,15 +28,12 @@ function getCourseBin() {
 }
 
 function searchDept(dept,term){
+    toggleShow(document.getElementById("loading"));
     var url = "https://web-app.usc.edu/web/soc/api/classes/"
-    + encodeURIComponent(dept)
-    + "/"
-    + encodeURIComponent(term);
-    //var deptCourses;
+    + encodeURIComponent(dept) + "/" + encodeURIComponent(term);
     fetch(url)
     .then(response => response.json())
     .then(data => showSearchedCourses(data.OfferedCourses.course, dept));
-    
 }
 
 function addElement(type, className, appendTo, text){
@@ -107,6 +104,8 @@ function showSearchedCourses(searchedCourseList, dept){
         accordion[i].addEventListener('click', function () {
             toggleShow(this.nextElementSibling);})
     }
+    //Hide loading indicator now that search has successfully completed
+    toggleShow(document.getElementById("loading"));
 }
 
 function toggleShow(element){

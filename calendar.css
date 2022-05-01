@@ -33,6 +33,9 @@
 #input{
     width: 95%;
 }
+#loading{
+    display: none;
+}
 #searchResultsContainer{
     max-height: 95%;
     overflow-y: scroll;
