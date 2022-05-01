@@ -28,7 +28,7 @@ function getCourseBin() {
 }
 
 function searchDept(dept,term){
-    toggleShow(document.getElementById("loading"));
+    document.getElementById("loading").style.display = "block";
     var url = "https://web-app.usc.edu/web/soc/api/classes/"
     + encodeURIComponent(dept) + "/" + encodeURIComponent(term);
     fetch(url)
@@ -113,7 +113,7 @@ function showSearchedCourses(searchedCourseList, dept){
             toggleShow(this.nextElementSibling);})
     }
     //Hide loading indicator now that search has successfully completed
-    toggleShow(document.getElementById("loading"));
+    document.getElementById("loading").style.display = "none";
 }
 
 function toggleShow(element){
