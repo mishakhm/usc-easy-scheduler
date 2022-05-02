@@ -1,24 +1,24 @@
-class course {
-    constructor(dept, number, title){
-        this.dept = dept;
-        this.number = number;
-        this.title = title;
-        //this.units = units;
-        this.sections = [];
-    }
-}
+// class course {
+//     constructor(dept, number, title){
+//         this.dept = dept;
+//         this.number = number;
+//         this.title = title;
+//         //this.units = units;
+//         this.sections = [];
+//     }
+// }
 
-class section {
-    constructor(id, day, start_time, end_time, numRegistered, spaces, type){
-        this.id = id;
-        this.day = day;
-        this.start_time = start_time;
-        this.end_time = end_time;
-        this.numRegistered = numRegistered;
-        this.spaces = spaces;
-        this.type = type;
-    }
-}
+// class section {
+//     constructor(id, day, start_time, end_time, numRegistered, spaces, type){
+//         this.id = id;
+//         this.day = day;
+//         this.start_time = start_time;
+//         this.end_time = end_time;
+//         this.numRegistered = numRegistered;
+//         this.spaces = spaces;
+//         this.type = type;
+//     }
+// }
 
 function getCourseBin() {
     fetch("https://webreg.usc.edu/Scheduler/Read", {
@@ -98,40 +98,12 @@ function createClassHTML(course, addTo, type){
         addElement("div", "", displayCourseInfo,
         "Co-reqs: " + course.CourseData.coreq_text)}
     //Add all course sections to info
-    for(let j = 0; j<course.CourseData.SectionData.length; j++){
-        var section = document.createElement("div");
-        section.className = "searchSection";
-        
-        addElement("p", "", section, 
-        course.CourseData.SectionData[j].id
-        + " " + course.CourseData.SectionData[j].dclass_code
-        + ": " + course.CourseData.SectionData[j].type);
-
-        addElement("p", "", section, 
-        course.CourseData.SectionData[j].day
-        + " " + course.CourseData.SectionData[j].start_time
-        + "-" + course.CourseData.SectionData[j].end_time);
-
-        //Check if an instructor is listed for the course, and either display their name or a message
-        if (typeof course.CourseData.SectionData[j].instructor != "undefined"){
-            if(Array.isArray(course.CourseData.SectionData[j].instructor)){
-                for(let k = 0; k<course.CourseData.SectionData[j].instructor.length;k++){
-                    addElement("p", "", section, 
-                    course.CourseData.SectionData[j].instructor[k].last_name
-                    + ", " + course.CourseData.SectionData[j].instructor[k].first_name);}
-            }
-            else{
-                addElement("p", "", section, 
-                course.CourseData.SectionData[j].instructor.last_name
-                + ", " + course.CourseData.SectionData[j].instructor.first_name);}}
-        else{addElement("p", "", section, "No instructor listed");}
-
-        addElement("p", "", section, 
-        course.CourseData.SectionData[j].number_registered
-        + "/" + course.CourseData.SectionData[j].spaces_available);
-
-        displayCourseInfo.appendChild(section);
-    }
+    if (Array.isArray(course.CourseData.SectionData)){
+        for(let j = 0; j<course.CourseData.SectionData.length; j++){
+            createSectionHTML(course.CourseData.SectionData[j], displayCourseInfo)}}
+        else{
+            createSectionHTML(course.CourseData.SectionData, displayCourseInfo);
+        }
     displayCourse.appendChild(displayCourseInfo);
     //Add the whole course div to the results
     addTo.appendChild(displayCourse);
@@ -139,6 +111,40 @@ function createClassHTML(course, addTo, type){
     button.addEventListener('click', function () {
         toggleShow(this.nextElementSibling);})
 }
+
+function createSectionHTML(section, addTo){
+    var sectionDiv = document.createElement("div");
+    sectionDiv.className = "searchSection";
+    
+    addElement("p", "", sectionDiv, section.id + " "
+    + section.dclass_code + ": " + section.type);
+
+    if(typeof section.day == "string"){
+        addElement("p", "", sectionDiv, section.day + " "
+        + section.start_time + "-" + section.end_time);}
+    else{
+        addElement("p", "", sectionDiv, "No days listed, times: "
+        + section.start_time + "-" + section.end_time);}
+
+    //Check if an instructor is listed for the course, and either display their name or a message
+    if (typeof section.instructor != "undefined"){
+        if(Array.isArray(section.instructor)){
+            for(let k = 0; k<section.instructor.length;k++){
+                addElement("p", "", sectionDiv, 
+                section.instructor[k].last_name
+                + ", " + section.instructor[k].first_name);}
+        }
+        else{
+            addElement("p", "", sectionDiv, 
+            section.instructor.last_name
+            + ", " + section.instructor.first_name);}}
+    else{addElement("p", "", sectionDiv, "No instructor listed");}
+
+    addElement("p", "", sectionDiv, 
+    section.number_registered
+    + "/" + section.spaces_available);
+
+    addTo.appendChild(sectionDiv);}
 
 function toggleShow(element){
     if (element.style.display == "block"){
