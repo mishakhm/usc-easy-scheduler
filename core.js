@@ -41,6 +41,7 @@ function addElement(type, className, appendTo, text){
     if(className != "") {element.className = className;}
     element.appendChild(document.createTextNode(text));
     appendTo.appendChild(element);
+    return element;
 }
 
 function showSearchedCourses(searchedCourseList, dept){
@@ -56,12 +57,21 @@ function showSearchedCourses(searchedCourseList, dept){
             var searchedCourse = document.createElement("div");
             searchedCourse.className = "searchResult";
 
+            //Find how many units the course is worth
+            var units = "0.0";
+            for(let j = 0; j<searchedCourseList[i].CourseData.SectionData.length; j++){
+                if(parseFloat(searchedCourseList[i].CourseData.SectionData[j].units) > parseFloat(units)){
+                    units = searchedCourseList[i].CourseData.SectionData[j].units;
+                }
+            }
+
             //Create button with outer info
-            addElement("button", "searchResultButton", searchedCourse, 
+            button = addElement("button", "searchResultButton", searchedCourse, "");
+            addElement("p", "", button, 
             searchedCourseList[i].CourseData.prefix
             + "-" + searchedCourseList[i].CourseData.number
-            + ": " + searchedCourseList[i].CourseData.title
-            )
+            + ": " + searchedCourseList[i].CourseData.title);
+            addElement("p", "", button, "Units: " + units);
             
             //Add course info
             var searchedCourseInfo = document.createElement("div");
@@ -129,12 +139,10 @@ function toggleShow(element){
     else {element.style.display = "block";}
 }
 
+
 var term = "20223";
 
-// Seems only possible to get scheduled courses, not all in coursebin. Just design it around this
-//getCourseBin();
-//searchDept("BISC","20223");
-
+//Adds search listener to dept search box
 var input = document.getElementById("input");
 input.addEventListener("keypress", function(event) {
     if (event.key === "Enter") {
