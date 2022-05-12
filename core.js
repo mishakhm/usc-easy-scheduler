@@ -153,8 +153,8 @@ function toggleShow(element){
 }
 
 function addClass(course){
-    //Need to add a check that the course isn't already in list
-    classes.push(course);
+    if(!containsClass(classes, course)) {
+        classes.push(course);}
     //Save updated list of classes - using storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but would eventually be ideal
     chrome.storage.local.set({'classes': classes});
     //Show updated list of classes
@@ -173,6 +173,15 @@ function showMyClasses(){
     for(i=0; i<classes.length; i++){
         createClassHTML(classes[i], document.getElementById("myClassesContainer"), "myClasses");
     }
+}
+
+function containsClass(obj, course){
+    for(i=0; i<obj.length; i++){
+        if(obj[i].PublishedCourseID == course.PublishedCourseID){
+            return true;
+        }
+    }
+    return false;
 }
 
 //chrome.storage.local.set({'term': "20223"})
