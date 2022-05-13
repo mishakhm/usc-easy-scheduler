@@ -186,14 +186,37 @@ function containsClass(obj, course){
 
 function showSection(section){
     var cal = document.getElementById("scrollcal");
-    var sectionDiv = addElement("div", "", cal, ".");
+    var sectionDiv = addElement("div", "calsection", cal, ".");
     sectionDiv.style.position = "absolute";
-    sectionDiv.style.top = "110px";
-    sectionDiv.style.left = "58px";
-    sectionDiv.style.width = "98px";
+
     sectionDiv.style.background = "blue";
     
+    setSectionPosition(sectionDiv);
+
+    calSections.push(sectionDiv);
 }
+
+function setSectionPosition(sectionDiv){
+    var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
+    var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
+    var colRect = document.getElementsByClassName("cal-day")[7].getBoundingClientRect();
+    sectionDiv.style.top = (colRect.y - headerRect.y).toString() + "px";
+    sectionDiv.style.left = (colRect.x - timeRect.x).toString() + "px";
+    sectionDiv.style.width = colRect.width.toString() + "px";
+    sectionDiv.style.height = colRect.height.toString() + "px";
+}
+
+function monitorDevicePixelRatio() {
+    function onPixelRatioChange() {
+      for(i = 0; i<calSections.length; i++){
+          setSectionPosition(calSections[i]);
+      }
+      monitorDevicePixelRatio();
+    }
+    matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+    .addEventListener("change", onPixelRatioChange, { once: true });
+  }
+  monitorDevicePixelRatio();
 
 //chrome.storage.local.set({'term': "20223"})
 var term;
@@ -213,3 +236,5 @@ input.addEventListener("keypress", function(event) {
         searchDept(event.target.value.toUpperCase(),term);
     }
 });
+
+var calSections = [];
