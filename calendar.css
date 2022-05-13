@@ -76,13 +76,14 @@
     flex-direction: column;
     height: 90%;
     /* This is not ideal for setting the height of the calendar section */
+    overflow-y: scroll;
 }
 #scrollcal {
-    overflow-y: scroll;
-    flex: auto;
+    position: relative;
 }
 .tg  {
-    border-collapse:collapse;
+    /*border-collapse:collapse;*/
+    border-color: separate;
     border-spacing:0;
     width: 100%;
     background-color: white;
@@ -92,6 +93,10 @@
 .thead {
     position: sticky;
     top: 0;
+    z-index: 1;
+}
+.thead .cal-time{
+    border-bottom-width: 0px;
 }
 .tg td{border-color:black;border-style:solid;border-width:1px;font-size:14px;
     overflow:hidden;padding:7px 5px;word-break:normal;}

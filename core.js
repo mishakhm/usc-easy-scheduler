@@ -187,10 +187,10 @@ function containsClass(obj, course){
 function showSection(section){
     var cal = document.getElementById("scrollcal");
     var sectionDiv = addElement("div", "", cal, ".");
-    sectionDiv.style.position = "relative";
-    sectionDiv.style.top = "-100px";
-    sectionDiv.style.left = "100px";
-    sectionDiv.style.width = "100px";
+    sectionDiv.style.position = "absolute";
+    sectionDiv.style.top = "110px";
+    sectionDiv.style.left = "58px";
+    sectionDiv.style.width = "98px";
     sectionDiv.style.background = "blue";
     
 }
