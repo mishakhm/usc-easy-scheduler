@@ -186,13 +186,26 @@ function containsClass(obj, course){
 
 function showSection(section, coursename){
     var cal = document.getElementById("scrollcal");
-    var sectionDiv = addElement("div", "calsection", cal,
-    coursename + ": (" + section.id + ")");
-    sectionDiv.style.position = "absolute";
 
-    sectionDiv.style.background = "blue";
-    
-    var calSection = {sectionDiv: sectionDiv, section: section};
+    var calSection = {id: section.id, daySections: [], start_time: section.start_time, end_time: section.end_time};
+
+    var day = section.day;
+    while (day != ""){
+        var currentDay = day.substring(day.length - 1, day.length);
+        day = day.substring(0, day.length -1);
+        if (currentDay == "H"){
+            currentDay = "TH";
+            day = day.substring(0, day.length -1);
+        }
+
+        var sectionDiv = addElement("div", "calsection", cal,
+        coursename + ": (" + section.id + ")");
+        sectionDiv.style.position = "absolute";
+
+        sectionDiv.style.background = "blue";
+
+        calSection.daySections.push({sectionDiv: sectionDiv, day: currentDay})        
+    }
 
     setSectionPosition(calSection);
     calSections.push(calSection);
@@ -206,14 +219,27 @@ function showFirstSection(){
 
 function setSectionPosition(calSection){
     //Probably inefficient to get every element with this class name every single time
+    var calDay = document.getElementsByClassName("cal-day");
     var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
     var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
-    var cellRect = document.getElementsByClassName("cal-day")[7].getBoundingClientRect();
-    calSection.sectionDiv.style.top = (cellRect.y - headerRect.y).toString() + "px";
-    calSection.sectionDiv.style.height = cellRect.height.toString() + "px";
 
-    calSection.sectionDiv.style.left = (cellRect.x - timeRect.x).toString() + "px";
-    calSection.sectionDiv.style.width = cellRect.width.toString() + "px";
+    var startMinutes = parseInt(calSection.start_time.substring(calSection.start_time.length -2, calSection.start_time.length));
+    var startHours = parseInt(calSection.start_time.substring(0, 2));
+
+    var cellRect = calDay[((startHours-5)*2+startMinutes/30)*7+7].getBoundingClientRect();
+    var top = (cellRect.y - calDay[7].getBoundingClientRect().y+headerRect.height).toString() + "px";
+    
+    var endMinutes = parseInt(calSection.end_time.substring(calSection.end_time.length -2, calSection.end_time.length));
+    var endHours = parseInt(calSection.end_time.substring(0, 2));
+    var height = (cellRect.height/30*((endHours-startHours)*60+endMinutes-startMinutes)).toString() + "px";
+
+    for(i = 0; i<calSection.daySections.length; i++){
+        calSection.daySections[i].sectionDiv.style.top = top;
+        calSection.daySections[i].sectionDiv.style.height = height;
+
+        calSection.daySections[i].sectionDiv.style.left = (cellRect.x - timeRect.x).toString() + "px";
+        calSection.daySections[i].sectionDiv.style.width = cellRect.width.toString() + "px";
+    }
 }
 
 function monitorDevicePixelRatio() {
