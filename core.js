@@ -184,6 +184,17 @@ function containsClass(obj, course){
     return false;
 }
 
+function showSection(section){
+    var cal = document.getElementById("scrollcal");
+    var sectionDiv = addElement("div", "", cal, ".");
+    sectionDiv.style.position = "relative";
+    sectionDiv.style.top = "-100px";
+    sectionDiv.style.left = "100px";
+    sectionDiv.style.width = "100px";
+    sectionDiv.style.background = "blue";
+    
+}
+
 //chrome.storage.local.set({'term': "20223"})
 var term;
 var classes;

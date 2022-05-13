@@ -77,7 +77,7 @@
     height: 90%;
     /* This is not ideal for setting the height of the calendar section */
 }
-.scrollcal {
+#scrollcal {
     overflow-y: scroll;
     flex: auto;
 }
