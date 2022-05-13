@@ -191,11 +191,11 @@ function showSection(section, coursename){
 
     var day = section.day;
     while (day != ""){
-        var currentDay = day.substring(day.length - 1, day.length);
-        day = day.substring(0, day.length -1);
+        var currentDay = day.slice(-1);
+        day = day.slice(0,-1);
         if (currentDay == "H"){
             currentDay = "TH";
-            day = day.substring(0, day.length -1);
+            day = day.slice(0,-1);
         }
 
         var sectionDiv = addElement("div", "calsection", cal,
@@ -223,19 +223,31 @@ function setSectionPosition(calSection){
     var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
     var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
 
-    var startMinutes = parseInt(calSection.start_time.substring(calSection.start_time.length -2, calSection.start_time.length));
-    var startHours = parseInt(calSection.start_time.substring(0, 2));
-
-    var cellRect = calDay[((startHours-5)*2+startMinutes/30)*7+7].getBoundingClientRect();
-    var top = (cellRect.y - calDay[7].getBoundingClientRect().y+headerRect.height).toString() + "px";
-    
-    var endMinutes = parseInt(calSection.end_time.substring(calSection.end_time.length -2, calSection.end_time.length));
-    var endHours = parseInt(calSection.end_time.substring(0, 2));
-    var height = (cellRect.height/30*((endHours-startHours)*60+endMinutes-startMinutes)).toString() + "px";
+    var startMinutes = parseInt(calSection.start_time.slice(-2));
+    var startHours = parseInt(calSection.start_time.slice(0, 2));
+    var endMinutes = parseInt(calSection.end_time.slice(-2));
+    var endHours = parseInt(calSection.end_time.slice(0, 2));
+    var timeOffset = ((startHours-5)*2+startMinutes/30)*7+7;
 
     for(i = 0; i<calSection.daySections.length; i++){
-        calSection.daySections[i].sectionDiv.style.top = top;
-        calSection.daySections[i].sectionDiv.style.height = height;
+        var dayOffset = 0;
+        if(calSection.daySections[i].day == "M"){
+            dayOffset += 1;}
+        else if(calSection.daySections[i].day == "T"){
+            dayOffset += 2;}
+        else if(calSection.daySections[i].day == "W"){
+            dayOffset += 3;}
+        else if(calSection.daySections[i].day == "TH"){
+            dayOffset += 4;}
+        else if(calSection.daySections[i].day == "F"){
+            dayOffset += 5;}
+        var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
+
+        var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y+headerRect.height;
+        var height = cellRect.height/30*((endHours-startHours)*60+endMinutes-startMinutes);
+        
+        calSection.daySections[i].sectionDiv.style.top = top.toString() + "px";
+        calSection.daySections[i].sectionDiv.style.height = height.toString() + "px";
 
         calSection.daySections[i].sectionDiv.style.left = (cellRect.x - timeRect.x).toString() + "px";
         calSection.daySections[i].sectionDiv.style.width = cellRect.width.toString() + "px";
