@@ -184,26 +184,36 @@ function containsClass(obj, course){
     return false;
 }
 
-function showSection(section){
+function showSection(section, coursename){
     var cal = document.getElementById("scrollcal");
-    var sectionDiv = addElement("div", "calsection", cal, ".");
+    var sectionDiv = addElement("div", "calsection", cal,
+    coursename + ": (" + section.id + ")");
     sectionDiv.style.position = "absolute";
 
     sectionDiv.style.background = "blue";
     
-    setSectionPosition(sectionDiv);
+    var calSection = {sectionDiv: sectionDiv, section: section};
 
-    calSections.push(sectionDiv);
+    setSectionPosition(calSection);
+    calSections.push(calSection);
 }
 
-function setSectionPosition(sectionDiv){
+//For testing:
+function showFirstSection(){
+    showSection(classes[0].CourseData.SectionData[0], classes[0].CourseData.prefix
+        + "-" + classes[0].CourseData.number)
+}
+
+function setSectionPosition(calSection){
+    //Probably inefficient to get every element with this class name every single time
     var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
     var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
-    var colRect = document.getElementsByClassName("cal-day")[7].getBoundingClientRect();
-    sectionDiv.style.top = (colRect.y - headerRect.y).toString() + "px";
-    sectionDiv.style.left = (colRect.x - timeRect.x).toString() + "px";
-    sectionDiv.style.width = colRect.width.toString() + "px";
-    sectionDiv.style.height = colRect.height.toString() + "px";
+    var cellRect = document.getElementsByClassName("cal-day")[7].getBoundingClientRect();
+    calSection.sectionDiv.style.top = (cellRect.y - headerRect.y).toString() + "px";
+    calSection.sectionDiv.style.height = cellRect.height.toString() + "px";
+
+    calSection.sectionDiv.style.left = (cellRect.x - timeRect.x).toString() + "px";
+    calSection.sectionDiv.style.width = cellRect.width.toString() + "px";
 }
 
 function monitorDevicePixelRatio() {
