@@ -57,10 +57,15 @@ function createClassHTML(course, addTo, type){
     }
 
     //Create button with outer info
+    course.courseCode = course.CourseData.prefix + "-" + course.CourseData.number;
+    if (typeof course.CourseData.sequence == "string"){
+        course.courseCode += course.CourseData.sequence;
+    }
+    if (typeof course.CourseData.suffix == "string"){
+        course.courseCode += course.CourseData.suffix;
+    }
     button = addElement("button", "searchResultButton", displayCourse, "");
-    addElement("p", "", button, 
-    course.CourseData.prefix
-    + "-" + course.CourseData.number
+    addElement("p", "", button, course.courseCode
     + ": " + course.CourseData.title);
     addElement("p", "", button, "Units: " + units);
     
@@ -69,7 +74,8 @@ function createClassHTML(course, addTo, type){
     displayCourseInfo.className = "displayCourseInfo";
     //"Add class" button if in search
     if (type == "search"){
-        addClassButton = addElement("button", "addClass", displayCourseInfo, "Add class to my list");
+        addClassButton = addElement("button", "addClass", displayCourseInfo,
+            "Add class to my list");
         addClassButton.addEventListener('click', function () {
             addClass(course);
         });}
@@ -83,9 +89,11 @@ function createClassHTML(course, addTo, type){
     //Add all course sections to info
     if (Array.isArray(course.CourseData.SectionData)){
         for(let j = 0; j<course.CourseData.SectionData.length; j++){
-            createSectionHTML(course.CourseData.SectionData[j], displayCourseInfo)}}
+            createSectionHTML(course.CourseData.SectionData[j], displayCourseInfo,
+                type, course.courseCode)}}
         else{
-            createSectionHTML(course.CourseData.SectionData, displayCourseInfo);
+            createSectionHTML(course.CourseData.SectionData, displayCourseInfo,
+                type, course.courseCode);
         }
     displayCourse.appendChild(displayCourseInfo);
     //Add the whole course div to the results
@@ -95,19 +103,35 @@ function createClassHTML(course, addTo, type){
         toggleShow(this.nextElementSibling);})
 }
 
-function createSectionHTML(section, addTo){
+function createSectionHTML(section, addTo, type, courseCode){
     var sectionDiv = document.createElement("div");
     sectionDiv.className = "searchSection";
     
     addElement("p", "", sectionDiv, section.id + " "
     + section.dclass_code + ": " + section.type);
 
+
+    var dayText = "";
     if(typeof section.day == "string"){
-        addElement("p", "", sectionDiv, section.day + " "
-        + section.start_time + "-" + section.end_time);}
+        var dayParse = section.day;
+        while (dayParse != ""){
+            var currentDay = dayParse.slice(0,1);
+            dayParse = dayParse.slice(1);
+            if (currentDay == "T"){
+                dayText += "Tu";
+            }
+            else if (currentDay == "H"){
+                dayText += "Th";
+            }
+            else {
+                dayText += currentDay;
+            }
+        }    
+    }
     else{
-        addElement("p", "", sectionDiv, "No days listed, times: "
-        + section.start_time + "-" + section.end_time);}
+        dayText = "No days listed, times:";}
+    addElement("p", "", sectionDiv, dayText + " "
+    + section.start_time + "-" + section.end_time);
 
     //Check if an instructor is listed, and either display their name or a message
     if (typeof section.instructor != "undefined"){
@@ -126,6 +150,14 @@ function createSectionHTML(section, addTo){
     addElement("p", "", sectionDiv, 
     section.number_registered
     + "/" + section.spaces_available);
+
+    //Add "schedule section" button if this is called for myClasses
+    if(type == "myClasses"){
+        schedSectButton = addElement("button", "schedSect", sectionDiv,
+            "Schedule section");
+        schedSectButton.addEventListener('click', function () {
+            showSection(section, courseCode);
+        });}
 
     addTo.appendChild(sectionDiv);}
 
@@ -207,10 +239,6 @@ function showSection(section, coursename){
     while (day != ""){
         var currentDay = day.slice(-1);
         day = day.slice(0,-1);
-        if (currentDay == "H"){
-            currentDay = "TH";
-            day = day.slice(0,-1);
-        }
         calSection.daySections.push({day: currentDay});   
     }
 
@@ -222,7 +250,7 @@ function showSection(section, coursename){
     else {
         for(i = 0; i<calSection.daySections.length; i++){
             var sectionDiv = addElement("div", "calsection", cal,
-            coursename + ": (" + section.id + ")");
+            coursename + ": (" + section.id + "), " + section.type);
             sectionDiv.style.position = "absolute";
 
             sectionDiv.style.background = "blue";
@@ -257,7 +285,7 @@ function setSectionPosition(calSection){
             dayOffset += 2;}
         else if(calSection.daySections[i].day == "W"){
             dayOffset += 3;}
-        else if(calSection.daySections[i].day == "TH"){
+        else if(calSection.daySections[i].day == "H"){
             dayOffset += 4;}
         else if(calSection.daySections[i].day == "F"){
             dayOffset += 5;}
@@ -277,13 +305,13 @@ function setSectionPosition(calSection){
         calSection.daySections[i].sectionDiv.style.left = 
             (cellRect.x - timeRect.x).toString() + "px";
         calSection.daySections[i].sectionDiv.style.width = 
-            cellRect.width.toString() + "px";
+            (0.95*cellRect.width).toString() + "px";
     }
 }
 
 function setAllSectionPositions(){
-    for(i = 0; i<calSections.length; i++){
-        setSectionPosition(calSections[i]);
+    for(x = 0; x<calSections.length; x++){
+        setSectionPosition(calSections[x]);
     }
 }
 
@@ -301,7 +329,7 @@ monitorDevicePixelRatio();
 //Update calendar div positions on window resize
 window.addEventListener("resize", setAllSectionPositions);
 
-//chrome.storage.local.set({'term': "20223"})
+chrome.storage.local.set({'term': "20223"})
 var term;
 var classes;
 chrome.storage.local.get(['term','classes'], data => {
