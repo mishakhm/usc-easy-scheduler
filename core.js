@@ -1,25 +1,3 @@
-// class course {
-//     constructor(dept, number, title){
-//         this.dept = dept;
-//         this.number = number;
-//         this.title = title;
-//         //this.units = units;
-//         this.sections = [];
-//     }
-// }
-
-// class section {
-//     constructor(id, day, start_time, end_time, numRegistered, spaces, type){
-//         this.id = id;
-//         this.day = day;
-//         this.start_time = start_time;
-//         this.end_time = end_time;
-//         this.numRegistered = numRegistered;
-//         this.spaces = spaces;
-//         this.type = type;
-//     }
-// }
-
 function getCourseBin() {
     fetch("https://webreg.usc.edu/Scheduler/Read", {
         method: 'POST'})
@@ -51,9 +29,14 @@ function showSearchedCourses(searchedCourseList, dept){
     document.getElementById("searchResultsContainer").innerHTML = "";
 
     for(let i = 0; i<searchedCourseList.length; i++){
-        //Check that the course actually belongs in this search (because USC's API will return all courses connected to a department even if they don't match the prefix, i.e. QBIO-401 will show up when searching for BISC courses. Webreg's own search only shows courses that match the prefix exactly)
+        //Check that the course actually belongs in this search
+        //(because USC's API will return all courses connected to a department,
+        //even if they don't match the prefix
+        //i.e. QBIO-401 will show up when searching for BISC courses
+        //Webreg's own search only shows courses that match the prefix exactly)
         if(searchedCourseList[i].CourseData.prefix == dept){
-            createClassHTML(searchedCourseList[i], document.getElementById("searchResultsContainer"), "search");
+            createClassHTML(searchedCourseList[i],
+                document.getElementById("searchResultsContainer"), "search");
         }
     }
     //Hide loading indicator now that search has successfully completed
@@ -126,7 +109,7 @@ function createSectionHTML(section, addTo){
         addElement("p", "", sectionDiv, "No days listed, times: "
         + section.start_time + "-" + section.end_time);}
 
-    //Check if an instructor is listed for the course, and either display their name or a message
+    //Check if an instructor is listed, and either display their name or a message
     if (typeof section.instructor != "undefined"){
         if(Array.isArray(section.instructor)){
             for(let k = 0; k<section.instructor.length;k++){
@@ -155,18 +138,21 @@ function toggleShow(element){
 function addClass(course){
     if(!containsClass(classes, course)) {
         classes.push(course);}
-    //Save updated list of classes - using storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but would eventually be ideal
+    //Save updated list of classes
+    //Using storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but would eventually be ideal
     chrome.storage.local.set({'classes': classes});
     //Show updated list of classes
     showMyClasses();
 }
 
+//Clears all classes from the "my classes" section
 function clearClasses(){
     classes = [];
     chrome.storage.local.set({'classes': classes});
     showMyClasses();
 }
 
+//Displays all saved classes in the "my classes" div of the webpage
 function showMyClasses(){
     //Clear classes div
     document.getElementById("myClassesContainer").innerHTML = "";
@@ -175,19 +161,47 @@ function showMyClasses(){
     }
 }
 
-function containsClass(obj, course){
-    for(i=0; i<obj.length; i++){
-        if(obj[i].PublishedCourseID == course.PublishedCourseID){
+//Returns true if a given array contains the given course
+function containsClass(arr, course){
+    for(i=0; i<arr.length; i++){
+        if(arr[i].PublishedCourseID == course.PublishedCourseID){
             return true;
         }
     }
     return false;
 }
 
+//Returns the scheduled section that a given section conflicts with,
+//if there is a conflict
+function sectionConflicts(calSection){
+    var start = calSection.startMinutes + calSection.startHours*60;
+    var end = calSection.endMinutes + calSection.endHours*60;
+    var ret = [];
+    for(i = 0; i<calSections.length; i++){
+        var startCheck = calSections[i].startMinutes + calSections[i].startHours*60;
+        var endCheck = calSections[i].endMinutes + calSections[i].endHours*60;
+        if((start>=startCheck && start<=endCheck)
+            || (end>=startCheck && end<=endCheck)){
+                for(j = 0; j<calSection.daySections.length; j++){
+                    var matches = calSections[i].daySections.filter(
+                        e => e.day === calSection.daySections[j].day);
+                    if(matches.length > 0){
+                        ret.push(matches);
+                    }
+                }
+            }
+    }
+    return ret;
+}
+
 function showSection(section, coursename){
     var cal = document.getElementById("scrollcal");
 
-    var calSection = {id: section.id, daySections: [], start_time: section.start_time, end_time: section.end_time};
+    var calSection = {id: section.id, daySections: [],
+        startMinutes: parseInt(section.start_time.slice(-2)),
+        startHours: parseInt(section.start_time.slice(0, 2)),
+        endMinutes: parseInt(section.end_time.slice(-2)),
+        endHours: parseInt(section.end_time.slice(0, 2))};
 
     var day = section.day;
     while (day != ""){
@@ -197,18 +211,27 @@ function showSection(section, coursename){
             currentDay = "TH";
             day = day.slice(0,-1);
         }
-
-        var sectionDiv = addElement("div", "calsection", cal,
-        coursename + ": (" + section.id + ")");
-        sectionDiv.style.position = "absolute";
-
-        sectionDiv.style.background = "blue";
-
-        calSection.daySections.push({sectionDiv: sectionDiv, day: currentDay})        
+        calSection.daySections.push({day: currentDay});   
     }
 
-    setSectionPosition(calSection);
-    calSections.push(calSection);
+    //Checks if the parsed section conflicts with any already scheduled ones
+    //If not, creates divs on the calendar for each day of the section
+    if(sectionConflicts(calSection).length > 0){
+        alert("This section conflicts with an already scheduled section");
+    }
+    else {
+        for(i = 0; i<calSection.daySections.length; i++){
+            var sectionDiv = addElement("div", "calsection", cal,
+            coursename + ": (" + section.id + ")");
+            sectionDiv.style.position = "absolute";
+
+            sectionDiv.style.background = "blue";
+
+            calSection.daySections[i].sectionDiv = sectionDiv;
+        }
+        setSectionPosition(calSection);
+        calSections.push(calSection);
+    }
 }
 
 //For testing:
@@ -217,17 +240,14 @@ function showFirstSection(){
         + "-" + classes[0].CourseData.number)
 }
 
+//Positions given section's calendar div based on its time and day
 function setSectionPosition(calSection){
     //Probably inefficient to get every element with this class name every single time
     var calDay = document.getElementsByClassName("cal-day");
     var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
     var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
 
-    var startMinutes = parseInt(calSection.start_time.slice(-2));
-    var startHours = parseInt(calSection.start_time.slice(0, 2));
-    var endMinutes = parseInt(calSection.end_time.slice(-2));
-    var endHours = parseInt(calSection.end_time.slice(0, 2));
-    var timeOffset = ((startHours-5)*2+startMinutes/30)*7+7;
+    var timeOffset = ((calSection.startHours-5)*2+calSection.startMinutes/30)*7+7;
 
     for(i = 0; i<calSection.daySections.length; i++){
         var dayOffset = 0;
@@ -243,28 +263,43 @@ function setSectionPosition(calSection){
             dayOffset += 5;}
         var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
 
-        var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y+headerRect.height;
-        var height = cellRect.height/30*((endHours-startHours)*60+endMinutes-startMinutes);
+        var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
+            +headerRect.height;
+        var height = cellRect.height/30
+            *((calSection.endHours-calSection.startHours)*60
+            +calSection.endMinutes-calSection.startMinutes);
         
-        calSection.daySections[i].sectionDiv.style.top = top.toString() + "px";
-        calSection.daySections[i].sectionDiv.style.height = height.toString() + "px";
+        calSection.daySections[i].sectionDiv.style.top =
+            top.toString() + "px";
+        calSection.daySections[i].sectionDiv.style.height =
+            height.toString() + "px";
 
-        calSection.daySections[i].sectionDiv.style.left = (cellRect.x - timeRect.x).toString() + "px";
-        calSection.daySections[i].sectionDiv.style.width = cellRect.width.toString() + "px";
+        calSection.daySections[i].sectionDiv.style.left = 
+            (cellRect.x - timeRect.x).toString() + "px";
+        calSection.daySections[i].sectionDiv.style.width = 
+            cellRect.width.toString() + "px";
     }
 }
 
+function setAllSectionPositions(){
+    for(i = 0; i<calSections.length; i++){
+        setSectionPosition(calSections[i]);
+    }
+}
+
+//Listen for changes in webpage zoom, update calendar div positions if needed
 function monitorDevicePixelRatio() {
     function onPixelRatioChange() {
-      for(i = 0; i<calSections.length; i++){
-          setSectionPosition(calSections[i]);
-      }
+      setAllSectionPositions();
       monitorDevicePixelRatio();
     }
     matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
     .addEventListener("change", onPixelRatioChange, { once: true });
   }
-  monitorDevicePixelRatio();
+monitorDevicePixelRatio();
+
+//Update calendar div positions on window resize
+window.addEventListener("resize", setAllSectionPositions);
 
 //chrome.storage.local.set({'term': "20223"})
 var term;
