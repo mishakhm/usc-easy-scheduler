@@ -62,7 +62,7 @@ function createClassHTML(course, addTo, type){
         course.courseCode += course.CourseData.sequence;
     }
     if (typeof course.CourseData.suffix == "string"){
-        course.courseCode += course.CourseData.suffix;
+        course.courseCode += " " + course.CourseData.suffix;
     }
     button = addElement("button", "searchResultButton", displayCourse, "");
     addElement("p", "", button, course.courseCode
@@ -156,7 +156,7 @@ function createSectionHTML(section, addTo, type, courseCode){
         schedSectButton = addElement("button", "schedSect", sectionDiv,
             "Schedule section");
         schedSectButton.addEventListener('click', function () {
-            showSection(section, courseCode);
+            schedSection(section, courseCode);
         });}
 
     addTo.appendChild(sectionDiv);}
@@ -226,7 +226,7 @@ function sectionConflicts(calSection){
     return ret;
 }
 
-function showSection(section, coursename){
+function schedSection(section, coursename){
     var cal = document.getElementById("scrollcal");
 
     var calSection = {id: section.id, daySections: [],
@@ -248,14 +248,20 @@ function showSection(section, coursename){
         alert("This section conflicts with an already scheduled section");
     }
     else {
+        var unschedButton = [];
         for(i = 0; i<calSection.daySections.length; i++){
             var sectionDiv = addElement("div", "calsection", cal,
             coursename + ": (" + section.id + "), " + section.type);
             sectionDiv.style.position = "absolute";
 
-            sectionDiv.style.background = "blue";
+            unschedButton.push(addElement("button", "", sectionDiv, "X"));
 
             calSection.daySections[i].sectionDiv = sectionDiv;
+        }
+        for(i = 0; i<unschedButton.length; i++){
+            unschedButton[i].addEventListener('click', function () {
+                unSchedSection(calSection);
+            });
         }
         setSectionPosition(calSection);
         calSections.push(calSection);
@@ -264,7 +270,7 @@ function showSection(section, coursename){
 
 //For testing:
 function showFirstSection(){
-    showSection(classes[0].CourseData.SectionData[0], classes[0].CourseData.prefix
+    schedSection(classes[0].CourseData.SectionData[0], classes[0].CourseData.prefix
         + "-" + classes[0].CourseData.number)
 }
 
@@ -309,6 +315,14 @@ function setSectionPosition(calSection){
     }
 }
 
+function unSchedSection(calSection){
+    var index = calSections.indexOf(calSection)
+    for(j = 0; j<calSections[index].daySections.length; j++){
+        calSections[index].daySections[j].sectionDiv.remove();
+    }
+    calSections.splice(index, 1);
+}
+
 function setAllSectionPositions(){
     for(x = 0; x<calSections.length; x++){
         setSectionPosition(calSections[x]);
@@ -318,12 +332,12 @@ function setAllSectionPositions(){
 //Listen for changes in webpage zoom, update calendar div positions if needed
 function monitorDevicePixelRatio() {
     function onPixelRatioChange() {
-      setAllSectionPositions();
-      monitorDevicePixelRatio();
+        setAllSectionPositions();
+        monitorDevicePixelRatio();
     }
     matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
     .addEventListener("change", onPixelRatioChange, { once: true });
-  }
+}
 monitorDevicePixelRatio();
 
 //Update calendar div positions on window resize

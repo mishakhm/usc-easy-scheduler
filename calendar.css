@@ -84,8 +84,22 @@
 }
 .calsection {
     box-sizing: border-box;
-    padding: 1px;
+    padding-top: 2px;
+    padding-left: 2px;
+    padding-bottom: 2px;
+    padding-right: 17px;
     line-height: 1em;
+    background: #ffcc00;
+    color: black;
+}
+.calsection button {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 14px;
+    font-size: 11px;
+    padding: 1px;
+    height: 16px;
 }
 .tg  {
     /*border-collapse:collapse;*/
