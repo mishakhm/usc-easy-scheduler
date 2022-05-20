@@ -1,3 +1,286 @@
+class Course {
+    constructor(CourseData){
+        this.prefix = CourseData.prefix;
+        this.number = CourseData.number;
+        this.sequence = CourseData.sequence;
+        this.code = this.prefix + "-" + this.number;
+        if (typeof this.sequence == "string"){
+            this.code += this.sequence;
+        }
+        this.suffix = CourseData.suffix;
+        this.title = CourseData.title;
+        this.prereq_text = CourseData.prereq_text;
+        this.coreq_text = CourseData.coreq_text;
+        this.units = "0.0";
+        this.SectionData = [];
+        if (Array.isArray(CourseData.SectionData)){
+            for(let i = 0; i<CourseData.SectionData.length; i++){
+                //Find how many units the course is worth
+                //because only one section will have the number of units
+                if(parseFloat(CourseData.SectionData[i].units) > parseFloat(this.units)){
+                    this.units = CourseData.SectionData[i].units;
+                }
+                //Grab all sections, as Section class objects
+                this.SectionData.push(new Section(CourseData.SectionData[i], this.code));
+            }}
+            else{
+                this.units = CourseData.SectionData.units;
+                this.SectionData.push(new Section(CourseData.SectionData, this.code));
+            }
+    }
+    createHTML(addTo, type){
+        //Create div for all info for a single course
+        var displayCourse = document.createElement("div");
+        displayCourse.className = "searchResult";
+
+        //Create button with outer info
+        var text = this.code;
+        if (typeof this.suffix == "string"){
+            text += " " + this.suffix;
+        }
+        var button = addElement("button", "searchResultButton", displayCourse, "");
+        addElement("p", "", button, text + ": " + this.title);
+        addElement("p", "", button, "Units: " + this.units);
+        
+        //Add course info
+        var displayCourseInfo = document.createElement("div");
+        displayCourseInfo.className = "displayCourseInfo";
+        //"Add class" button if in search
+        if (type == "search"){
+            var addClassButton = addElement("button", "addClass", displayCourseInfo,
+                "Add class to my list");
+            addClassButton.addEventListener('click', () =>
+                this.add()
+            );
+        }
+        //Add pre-req and co-req info
+        if (typeof this.prereq_text == "string"){
+            addElement("div", "", displayCourseInfo,
+            "Pre-reqs: " + this.prereq_text)}
+        if (typeof this.coreq_text == "string"){
+            addElement("div", "", displayCourseInfo,
+            "Co-reqs: " + this.coreq_text)}
+        //Add all course sections to info
+        for(let j = 0; j<this.SectionData.length; j++){
+            this.SectionData[j].createHTML(displayCourseInfo, type);
+        }
+        displayCourse.appendChild(displayCourseInfo);
+        //Add the whole course div to the results
+        addTo.appendChild(displayCourse);
+        //Add accordion dropdown functionality
+        button.addEventListener('click', function () {
+            toggleShow(this.nextElementSibling);})
+    }
+    //Returns true if a given array contains this course
+    containedIn(arr){
+        for(let i=0; i<arr.length; i++){
+            if(arr[i].code == this.code){
+                return true;
+            }
+        }
+        return false;
+    }
+    add(){
+        if(!this.containedIn(classes)) {
+            classes.push(this);}
+        //Save updated list of classes
+        //storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
+        chrome.storage.local.set({'classes': classes});
+        //Show updated list of classes
+        showMyClasses();
+    }
+}
+
+class Section {
+    constructor(SectionData, code){
+        this.code = code;
+        this.id = SectionData.id;
+        this.instructor = SectionData.instructor;
+        this.type = SectionData.type;
+        this.dclass_code = SectionData.dclass_code;
+        this.number_registered = SectionData.number_registered;
+        this.spaces_available = SectionData.spaces_available;
+        this.start_time = SectionData.start_time;
+        this.end_time = SectionData.end_time;
+        this.startMinutes = parseInt(SectionData.start_time.slice(-2));
+        this.startHours = parseInt(SectionData.start_time.slice(0, 2));
+        this.endMinutes = parseInt(SectionData.end_time.slice(-2));
+        this.endHours = parseInt(SectionData.end_time.slice(0, 2));
+        this.day = SectionData.day;
+        this.daySections = [];
+        this.units = SectionData.units;
+        if(typeof SectionData.scheduled == "boolean"){
+            this.scheduled = SectionData.scheduled;
+        }
+        else{
+            this.scheduled = false;
+        }
+        if(typeof this.day == "string"){
+            var dayParse = this.day;
+            while (dayParse != ""){
+                var currentDay = dayParse.slice(-1);
+                dayParse = dayParse.slice(0,-1);
+                this.daySections.push({day: currentDay});   
+            }}
+    }
+    createHTML(addTo, type){
+        var sectionDiv = document.createElement("div");
+        sectionDiv.className = "searchSection";
+        
+        addElement("p", "", sectionDiv, this.id + " "
+        + this.dclass_code + ": " + this.type);
+
+
+        var dayText = "";
+        if(typeof this.day == "string"){
+            var dayParse = this.day;
+            while (dayParse != ""){
+                var currentDay = dayParse.slice(0,1);
+                dayParse = dayParse.slice(1);
+                if (currentDay == "T"){
+                    dayText += "Tu";
+                }
+                else if (currentDay == "H"){
+                    dayText += "Th";
+                }
+                else {
+                    dayText += currentDay;
+                }
+            }    
+        }
+        else{
+            dayText = "No days listed, times:";}
+        addElement("p", "", sectionDiv, dayText + " "
+        + this.start_time + "-" + this.end_time);
+
+        //Check if an instructor is listed, and either display their name or a message
+        if (typeof this.instructor != "undefined"){
+            if(Array.isArray(this.instructor)){
+                for(let k = 0; k<this.instructor.length;k++){
+                    addElement("p", "", sectionDiv, 
+                    this.instructor[k].last_name
+                    + ", " + this.instructor[k].first_name);}
+            }
+            else{
+                addElement("p", "", sectionDiv, 
+                this.instructor.last_name
+                + ", " + this.instructor.first_name);}}
+        else{addElement("p", "", sectionDiv, "No instructor listed");}
+
+        addElement("p", "", sectionDiv, 
+        this.number_registered
+        + "/" + this.spaces_available);
+
+        //Add "schedule section" button if this is called for myClasses
+        if(type == "myClasses"){
+            var schedSectButton = addElement("button", "schedSect", sectionDiv,
+                "Schedule section");
+            schedSectButton.addEventListener('click', () =>
+                this.schedule()
+            );}
+
+        addTo.appendChild(sectionDiv);
+    }
+    //Checks if the section conflicts with any already scheduled ones
+    //If not, creates divs on the calendar for each day of the section
+    conflicts(){
+        var start = this.startMinutes + this.startHours*60;
+        var end = this.endMinutes + this.endHours*60;
+        var ret = [];
+        for(let i = 0; i<calSections.length; i++){
+            var startCheck = calSections[i].startMinutes + calSections[i].startHours*60;
+            var endCheck = calSections[i].endMinutes + calSections[i].endHours*60;
+            if((start>=startCheck && start<=endCheck)
+                || (end>=startCheck && end<=endCheck)){
+                    for(let j = 0; j<this.daySections.length; j++){
+                        var matches = calSections[i].daySections.filter(
+                            e => e.day === this.daySections[j].day);
+                        if(matches.length > 0){
+                            ret.push(matches);
+                        }
+                    }
+                }
+        }
+        return ret;
+    }
+    schedule(){
+        if(this.conflicts().length > 0){
+            alert("This section conflicts with an already scheduled section");
+        }
+        else{
+            this.scheduled = true;
+            var cal = document.getElementById("scrollcal");
+            var unschedButton = [];
+            for(let i = 0; i<this.daySections.length; i++){
+                var sectionDiv = addElement("div", "calsection", cal,
+                this.code + ": (" + this.id + "), " + this.type);
+
+                unschedButton.push(addElement("button", "", sectionDiv, "X"));
+
+                this.daySections[i].sectionDiv = sectionDiv;
+            }
+            for(let i = 0; i<unschedButton.length; i++){
+                unschedButton[i].addEventListener('click', () =>
+                    this.unschedule()
+                );
+            }
+            this.position();
+            calSections.push(this);//Push a reference?
+            chrome.storage.local.set({'classes': classes});
+        }
+    }
+    //Properly positions the section's divs on calendar according to date/time
+    position(){
+        //Probably inefficient to get every element with this class name every single time
+        var calDay = document.getElementsByClassName("cal-day");
+        var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
+        var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
+
+        var timeOffset = ((this.startHours-5)*2+this.startMinutes/30)*7+7;
+
+        for(let i = 0; i<this.daySections.length; i++){
+            var dayOffset = 0;
+            if(this.daySections[i].day == "M"){
+                dayOffset += 1;}
+            else if(this.daySections[i].day == "T"){
+                dayOffset += 2;}
+            else if(this.daySections[i].day == "W"){
+                dayOffset += 3;}
+            else if(this.daySections[i].day == "H"){
+                dayOffset += 4;}
+            else if(this.daySections[i].day == "F"){
+                dayOffset += 5;}
+            var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
+
+            var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
+                +headerRect.height;
+            var height = cellRect.height/30
+                *((this.endHours-this.startHours)*60
+                +this.endMinutes-this.startMinutes);
+            
+            this.daySections[i].sectionDiv.style.top =
+                top.toString() + "px";
+            this.daySections[i].sectionDiv.style.height =
+                height.toString() + "px";
+
+            this.daySections[i].sectionDiv.style.left = 
+                (cellRect.x - timeRect.x).toString() + "px";
+            this.daySections[i].sectionDiv.style.width = 
+                (0.95*cellRect.width).toString() + "px";
+        }
+    }
+    unschedule(){
+        this.scheduled = false;
+        //Should be updated when calSections[] functionality is updated
+        var index = calSections.indexOf(this)
+        for(let j = 0; j<calSections[index].daySections.length; j++){
+            calSections[index].daySections[j].sectionDiv.remove();
+        }
+        calSections.splice(index, 1);
+        chrome.storage.local.set({'classes': classes});
+    }
+}
+
 function getCourseBin() {
     fetch("https://webreg.usc.edu/Scheduler/Read", {
         method: 'POST'})
@@ -14,14 +297,6 @@ function searchDept(dept,term){
     .then(data => showSearchedCourses(data.OfferedCourses.course, dept));
 }
 
-function addElement(type, className, appendTo, text){
-    var element = document.createElement(type);
-    if(className != "") {element.className = className;}
-    element.appendChild(document.createTextNode(text));
-    appendTo.appendChild(element);
-    return element;
-}
-
 function showSearchedCourses(searchedCourseList, dept){
     console.log(searchedCourseList); //For testing
 
@@ -35,146 +310,26 @@ function showSearchedCourses(searchedCourseList, dept){
         //i.e. QBIO-401 will show up when searching for BISC courses
         //Webreg's own search only shows courses that match the prefix exactly)
         if(searchedCourseList[i].CourseData.prefix == dept){
-            createClassHTML(searchedCourseList[i],
-                document.getElementById("searchResultsContainer"), "search");
+            new Course(searchedCourseList[i].CourseData).createHTML(
+                document.getElementById("searchResultsContainer"), "search")
         }
     }
     //Hide loading indicator now that search has successfully completed
     document.getElementById("loading").style.display = "none";
 }
 
-function createClassHTML(course, addTo, type){
-    //Create div for all info for a single course
-    var displayCourse = document.createElement("div");
-    displayCourse.className = "searchResult";
-
-    //Find how many units the course is worth
-    var units = "0.0";
-    for(let j = 0; j<course.CourseData.SectionData.length; j++){
-        if(parseFloat(course.CourseData.SectionData[j].units) > parseFloat(units)){
-            units = course.CourseData.SectionData[j].units;
-        }
-    }
-
-    //Create button with outer info
-    course.courseCode = course.CourseData.prefix + "-" + course.CourseData.number;
-    if (typeof course.CourseData.sequence == "string"){
-        course.courseCode += course.CourseData.sequence;
-    }
-    if (typeof course.CourseData.suffix == "string"){
-        course.courseCode += " " + course.CourseData.suffix;
-    }
-    button = addElement("button", "searchResultButton", displayCourse, "");
-    addElement("p", "", button, course.courseCode
-    + ": " + course.CourseData.title);
-    addElement("p", "", button, "Units: " + units);
-    
-    //Add course info
-    var displayCourseInfo = document.createElement("div");
-    displayCourseInfo.className = "displayCourseInfo";
-    //"Add class" button if in search
-    if (type == "search"){
-        addClassButton = addElement("button", "addClass", displayCourseInfo,
-            "Add class to my list");
-        addClassButton.addEventListener('click', function () {
-            addClass(course);
-        });}
-    //Add pre-req and co-req info
-    if (typeof course.CourseData.prereq_text == "string"){
-        addElement("div", "", displayCourseInfo,
-        "Pre-reqs: " + course.CourseData.prereq_text)}
-    if (typeof course.CourseData.coreq_text == "string"){
-        addElement("div", "", displayCourseInfo,
-        "Co-reqs: " + course.CourseData.coreq_text)}
-    //Add all course sections to info
-    if (Array.isArray(course.CourseData.SectionData)){
-        for(let j = 0; j<course.CourseData.SectionData.length; j++){
-            createSectionHTML(course.CourseData.SectionData[j], displayCourseInfo,
-                type, course.courseCode)}}
-        else{
-            createSectionHTML(course.CourseData.SectionData, displayCourseInfo,
-                type, course.courseCode);
-        }
-    displayCourse.appendChild(displayCourseInfo);
-    //Add the whole course div to the results
-    addTo.appendChild(displayCourse);
-    //Add accordion dropdown functionality
-    button.addEventListener('click', function () {
-        toggleShow(this.nextElementSibling);})
+function addElement(type, className, appendTo, text){
+    var element = document.createElement(type);
+    if(className != "") {element.className = className;}
+    element.appendChild(document.createTextNode(text));
+    appendTo.appendChild(element);
+    return element;
 }
-
-function createSectionHTML(section, addTo, type, courseCode){
-    var sectionDiv = document.createElement("div");
-    sectionDiv.className = "searchSection";
-    
-    addElement("p", "", sectionDiv, section.id + " "
-    + section.dclass_code + ": " + section.type);
-
-
-    var dayText = "";
-    if(typeof section.day == "string"){
-        var dayParse = section.day;
-        while (dayParse != ""){
-            var currentDay = dayParse.slice(0,1);
-            dayParse = dayParse.slice(1);
-            if (currentDay == "T"){
-                dayText += "Tu";
-            }
-            else if (currentDay == "H"){
-                dayText += "Th";
-            }
-            else {
-                dayText += currentDay;
-            }
-        }    
-    }
-    else{
-        dayText = "No days listed, times:";}
-    addElement("p", "", sectionDiv, dayText + " "
-    + section.start_time + "-" + section.end_time);
-
-    //Check if an instructor is listed, and either display their name or a message
-    if (typeof section.instructor != "undefined"){
-        if(Array.isArray(section.instructor)){
-            for(let k = 0; k<section.instructor.length;k++){
-                addElement("p", "", sectionDiv, 
-                section.instructor[k].last_name
-                + ", " + section.instructor[k].first_name);}
-        }
-        else{
-            addElement("p", "", sectionDiv, 
-            section.instructor.last_name
-            + ", " + section.instructor.first_name);}}
-    else{addElement("p", "", sectionDiv, "No instructor listed");}
-
-    addElement("p", "", sectionDiv, 
-    section.number_registered
-    + "/" + section.spaces_available);
-
-    //Add "schedule section" button if this is called for myClasses
-    if(type == "myClasses"){
-        schedSectButton = addElement("button", "schedSect", sectionDiv,
-            "Schedule section");
-        schedSectButton.addEventListener('click', function () {
-            schedSection(section, courseCode);
-        });}
-
-    addTo.appendChild(sectionDiv);}
 
 function toggleShow(element){
     if (element.style.display == "block"){
         element.style.display = "none";}
     else {element.style.display = "block";}
-}
-
-function addClass(course){
-    if(!containsClass(classes, course)) {
-        classes.push(course);}
-    //Save updated list of classes
-    //Using storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but would eventually be ideal
-    chrome.storage.local.set({'classes': classes});
-    //Show updated list of classes
-    showMyClasses();
 }
 
 //Clears all classes from the "my classes" section
@@ -188,144 +343,25 @@ function clearClasses(){
 function showMyClasses(){
     //Clear classes div
     document.getElementById("myClassesContainer").innerHTML = "";
-    for(i=0; i<classes.length; i++){
-        createClassHTML(classes[i], document.getElementById("myClassesContainer"), "myClasses");
+    for(let i=0; i<classes.length; i++){
+        classes[i].createHTML(document.getElementById("myClassesContainer"), "myClasses");
     }
+    showAllScheduled();
 }
 
-//Returns true if a given array contains the given course
-function containsClass(arr, course){
-    for(i=0; i<arr.length; i++){
-        if(arr[i].PublishedCourseID == course.PublishedCourseID){
-            return true;
-        }
-    }
-    return false;
-}
-
-//Returns the scheduled section that a given section conflicts with,
-//if there is a conflict
-function sectionConflicts(calSection){
-    var start = calSection.startMinutes + calSection.startHours*60;
-    var end = calSection.endMinutes + calSection.endHours*60;
-    var ret = [];
-    for(i = 0; i<calSections.length; i++){
-        var startCheck = calSections[i].startMinutes + calSections[i].startHours*60;
-        var endCheck = calSections[i].endMinutes + calSections[i].endHours*60;
-        if((start>=startCheck && start<=endCheck)
-            || (end>=startCheck && end<=endCheck)){
-                for(j = 0; j<calSection.daySections.length; j++){
-                    var matches = calSections[i].daySections.filter(
-                        e => e.day === calSection.daySections[j].day);
-                    if(matches.length > 0){
-                        ret.push(matches);
-                    }
-                }
+function showAllScheduled(){
+    for(let i=0; i<classes.length; i++){
+        for(let j = 0; j<classes[i].SectionData.length; j++){
+            if(classes[i].SectionData[j].scheduled){
+                classes[i].SectionData[j].schedule();
             }
-    }
-    return ret;
-}
-
-function schedSection(section, coursename){
-    var cal = document.getElementById("scrollcal");
-
-    var calSection = {id: section.id, daySections: [],
-        startMinutes: parseInt(section.start_time.slice(-2)),
-        startHours: parseInt(section.start_time.slice(0, 2)),
-        endMinutes: parseInt(section.end_time.slice(-2)),
-        endHours: parseInt(section.end_time.slice(0, 2))};
-
-    var day = section.day;
-    while (day != ""){
-        var currentDay = day.slice(-1);
-        day = day.slice(0,-1);
-        calSection.daySections.push({day: currentDay});   
-    }
-
-    //Checks if the parsed section conflicts with any already scheduled ones
-    //If not, creates divs on the calendar for each day of the section
-    if(sectionConflicts(calSection).length > 0){
-        alert("This section conflicts with an already scheduled section");
-    }
-    else {
-        var unschedButton = [];
-        for(i = 0; i<calSection.daySections.length; i++){
-            var sectionDiv = addElement("div", "calsection", cal,
-            coursename + ": (" + section.id + "), " + section.type);
-            sectionDiv.style.position = "absolute";
-
-            unschedButton.push(addElement("button", "", sectionDiv, "X"));
-
-            calSection.daySections[i].sectionDiv = sectionDiv;
         }
-        for(i = 0; i<unschedButton.length; i++){
-            unschedButton[i].addEventListener('click', function () {
-                unSchedSection(calSection);
-            });
-        }
-        setSectionPosition(calSection);
-        calSections.push(calSection);
     }
-}
-
-//For testing:
-function showFirstSection(){
-    schedSection(classes[0].CourseData.SectionData[0], classes[0].CourseData.prefix
-        + "-" + classes[0].CourseData.number)
-}
-
-//Positions given section's calendar div based on its time and day
-function setSectionPosition(calSection){
-    //Probably inefficient to get every element with this class name every single time
-    var calDay = document.getElementsByClassName("cal-day");
-    var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
-    var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
-
-    var timeOffset = ((calSection.startHours-5)*2+calSection.startMinutes/30)*7+7;
-
-    for(i = 0; i<calSection.daySections.length; i++){
-        var dayOffset = 0;
-        if(calSection.daySections[i].day == "M"){
-            dayOffset += 1;}
-        else if(calSection.daySections[i].day == "T"){
-            dayOffset += 2;}
-        else if(calSection.daySections[i].day == "W"){
-            dayOffset += 3;}
-        else if(calSection.daySections[i].day == "H"){
-            dayOffset += 4;}
-        else if(calSection.daySections[i].day == "F"){
-            dayOffset += 5;}
-        var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
-
-        var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
-            +headerRect.height;
-        var height = cellRect.height/30
-            *((calSection.endHours-calSection.startHours)*60
-            +calSection.endMinutes-calSection.startMinutes);
-        
-        calSection.daySections[i].sectionDiv.style.top =
-            top.toString() + "px";
-        calSection.daySections[i].sectionDiv.style.height =
-            height.toString() + "px";
-
-        calSection.daySections[i].sectionDiv.style.left = 
-            (cellRect.x - timeRect.x).toString() + "px";
-        calSection.daySections[i].sectionDiv.style.width = 
-            (0.95*cellRect.width).toString() + "px";
-    }
-}
-
-function unSchedSection(calSection){
-    var index = calSections.indexOf(calSection)
-    for(j = 0; j<calSections[index].daySections.length; j++){
-        calSections[index].daySections[j].sectionDiv.remove();
-    }
-    calSections.splice(index, 1);
 }
 
 function setAllSectionPositions(){
-    for(x = 0; x<calSections.length; x++){
-        setSectionPosition(calSections[x]);
+    for(let x = 0; x<calSections.length; x++){
+        calSections[x].position();
     }
 }
 
@@ -345,10 +381,14 @@ window.addEventListener("resize", setAllSectionPositions);
 
 chrome.storage.local.set({'term': "20223"})
 var term;
-var classes;
+var classes = [];
 chrome.storage.local.get(['term','classes'], data => {
     term = data.term;
-    if (typeof data.classes != "undefined"){classes = data.classes}
+    if (typeof data.classes != "undefined"){
+        for(let i = 0; i<data.classes.length; i++){
+            classes.push(new Course(data.classes[i]));
+        }
+    }
     else{classes = []}
     showMyClasses();
 });
