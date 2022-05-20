@@ -21,11 +21,11 @@ class Course {
                     this.units = CourseData.SectionData[i].units;
                 }
                 //Grab all sections, as Section class objects
-                this.SectionData.push(new Section(CourseData.SectionData[i], this.code));
+                this.SectionData.push(new Section(CourseData.SectionData[i], this.code, this.prefix));
             }}
             else{
                 this.units = CourseData.SectionData.units;
-                this.SectionData.push(new Section(CourseData.SectionData, this.code));
+                this.SectionData.push(new Section(CourseData.SectionData, this.code, this.prefix));
             }
     }
     createHTML(addTo, type){
@@ -80,20 +80,23 @@ class Course {
         }
         return false;
     }
+    //Adds the given class to myClasses if it is not already in it
     add(){
         if(!this.containedIn(classes)) {
-            classes.push(this);}
-        //Save updated list of classes
-        //storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
-        chrome.storage.local.set({'classes': classes});
-        //Show updated list of classes
-        showMyClasses();
+            var index = classes.push(this);
+            //Save updated list of classes
+            //storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
+            chrome.storage.local.set({'classes': classes});
+            //Add the HTML for the newly added class to myClasses div
+            classes[index-1].createHTML(document.getElementById("myClassesContainer"), "myClasses");
+        }
     }
 }
 
 class Section {
-    constructor(SectionData, code){
+    constructor(SectionData, code, prefix){
         this.code = code;
+        this.prefix = prefix;
         this.id = SectionData.id;
         this.instructor = SectionData.instructor;
         this.type = SectionData.type;
@@ -122,6 +125,8 @@ class Section {
                 dayParse = dayParse.slice(0,-1);
                 this.daySections.push({day: currentDay});   
             }}
+        this.sched = () => this.schedule();
+        this.unsched = () => this.unschedule();
     }
     createHTML(addTo, type){
         var sectionDiv = document.createElement("div");
@@ -175,10 +180,9 @@ class Section {
         if(type == "myClasses"){
             var schedSectButton = addElement("button", "schedSect", sectionDiv,
                 "Schedule section");
-            schedSectButton.addEventListener('click', () =>
-                this.schedule()
-            );}
-
+            schedSectButton.addEventListener('click', this.sched);
+        }
+        this.sectionDiv = sectionDiv;
         addTo.appendChild(sectionDiv);
     }
     //Checks if the section conflicts with any already scheduled ones
@@ -224,9 +228,19 @@ class Section {
                     this.unschedule()
                 );
             }
+            //Position the newly created div on the calendar based on date/time
             this.position();
+            //Change the "schedule section" button in myClasses to "unschedule section"
+            var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
+            schedSectButton.innerHTML = "Unschedule section";
+            schedSectButton.style.color = "red";
+            schedSectButton.removeEventListener('click', this.sched);
+            schedSectButton.addEventListener('click', this.unsched);
+            //Add the section to the array of currently scheduled sections
             calSections.push(this);//Push a reference?
+            //Save myClasses because this.scheduled has changed
             chrome.storage.local.set({'classes': classes});
+            colorClasses();
         }
     }
     //Properly positions the section's divs on calendar according to date/time
@@ -271,13 +285,23 @@ class Section {
     }
     unschedule(){
         this.scheduled = false;
+        //Change the "unschedule section" button in myClasses to "schedule section"
+        var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
+        schedSectButton.innerHTML = "Schedule section";
+        schedSectButton.style.color = "black";
+        schedSectButton.removeEventListener('click', this.unsched);
+        schedSectButton.addEventListener('click', this.sched);
         //Should be updated when calSections[] functionality is updated
         var index = calSections.indexOf(this)
+        //Remove the html div for the section from the calendar
         for(let j = 0; j<calSections[index].daySections.length; j++){
             calSections[index].daySections[j].sectionDiv.remove();
         }
+        //Remove the section from the array of scheduled sections
         calSections.splice(index, 1);
+        //Save myClasses because this.scheduled has changed
         chrome.storage.local.set({'classes': classes});
+        colorClasses();
     }
 }
 
@@ -346,7 +370,6 @@ function showMyClasses(){
     for(let i=0; i<classes.length; i++){
         classes[i].createHTML(document.getElementById("myClassesContainer"), "myClasses");
     }
-    showAllScheduled();
 }
 
 function showAllScheduled(){
@@ -362,6 +385,25 @@ function showAllScheduled(){
 function setAllSectionPositions(){
     for(let x = 0; x<calSections.length; x++){
         calSections[x].position();
+    }
+}
+
+//Color each distinct class (not section) on the calendar a different color
+function colorClasses(){
+    const colors = ["#ffd93d","#ff6b6b","#6bcb77","#4d96ff"];
+    //Finds how many distinct classes are scheduled
+    schedClasses = [];
+    for(let x = 0; x<calSections.length; x++){
+        if(!schedClasses.includes(calSections[x].code)){
+            schedClasses.push(calSections[x].code);
+        }
+    }
+    //Goes through the scheduled sections and colors them by class
+    for(let x = 0; x<calSections.length; x++){
+        var index = schedClasses.findIndex(element => element==calSections[x].code);
+        for(let n = 0; n<calSections[x].daySections.length; n++){
+            calSections[x].daySections[n].sectionDiv.style.background = colors[index];
+        }
     }
 }
 
@@ -391,6 +433,7 @@ chrome.storage.local.get(['term','classes'], data => {
     }
     else{classes = []}
     showMyClasses();
+    showAllScheduled();
 });
 
 //Adds search listener to dept search box
