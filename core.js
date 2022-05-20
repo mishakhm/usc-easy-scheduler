@@ -71,18 +71,9 @@ class Course {
         button.addEventListener('click', function () {
             toggleShow(this.nextElementSibling);})
     }
-    //Returns true if a given array contains this course
-    containedIn(arr){
-        for(let i=0; i<arr.length; i++){
-            if(arr[i].code == this.code){
-                return true;
-            }
-        }
-        return false;
-    }
     //Adds the given class to myClasses if it is not already in it
     add(){
-        if(!this.containedIn(classes)) {
+        if(containsClass(classes, this.code)==-1) {
             var index = classes.push(this);
             //Save updated list of classes
             //storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
@@ -321,6 +312,23 @@ function searchDept(dept,term){
     .then(data => showSearchedCourses(data.OfferedCourses.course, dept));
 }
 
+//Searches for a class matching given dept and code, then adds it to myClasses
+async function searchAddClass(dept,term,code){
+    var url = "https://web-app.usc.edu/web/soc/api/classes/"
+    + encodeURIComponent(dept) + "/" + encodeURIComponent(term);
+    let response = await fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        for(let i=0; i<data.OfferedCourses.course.length; i++){
+            var currentCourse = new Course(data.OfferedCourses.course[i].CourseData);
+            if(currentCourse.code == code){
+                currentCourse.add();
+            }
+        };
+    })
+    return response;
+}
+
 function showSearchedCourses(searchedCourseList, dept){
     console.log(searchedCourseList); //For testing
 
@@ -356,8 +364,19 @@ function toggleShow(element){
     else {element.style.display = "block";}
 }
 
+//Returns the index if the given array contains a class matching the given code, or -1 if not
+function containsClass(arr, code){
+    for(let i=0; i<arr.length; i++){
+        if(arr[i].code == code){
+            return i;
+        }
+    }
+    return -1;
+}
+
 //Clears all classes from the "my classes" section
 function clearClasses(){
+    unscheduleAll();
     classes = [];
     chrome.storage.local.set({'classes': classes});
     showMyClasses();
@@ -369,6 +388,43 @@ function showMyClasses(){
     document.getElementById("myClassesContainer").innerHTML = "";
     for(let i=0; i<classes.length; i++){
         classes[i].createHTML(document.getElementById("myClassesContainer"), "myClasses");
+    }
+}
+
+function unscheduleAll(){
+    while(calSections.length>0){
+        calSections[0].unschedule();
+    }
+}
+
+//Unschedules current schedule and loads the given
+//schedule[] where each element has {prefix, code, id}
+function loadSchedule(schedule){
+    unscheduleAll();
+    //Iterate through each section in the schedule
+    for(let i=0; i<schedule.length; i++){
+        var index = containsClass(classes, schedule[i].code);
+        //If the class in the schedule is already in myClasses
+        if(index!=-1){
+            //Find the matching section id and schedule it
+            for(let j=0;j<classes[index].SectionData.length;j++){
+                if(classes[index].SectionData[j].id==schedule[i].id){
+                    classes[index].SectionData[j].schedule();
+                }
+            }
+        }
+        //If not, add the class to myclasses and schedule it
+        else{
+            //Add class to myclasses
+            searchAddClass(schedule[i].prefix, term, schedule[i].code)
+            .then(function() {
+            //Find the matching section id and schedule it
+            for(let j=0;j<classes[classes.length-1].SectionData.length;j++){
+                if(classes[classes.length-1].SectionData[j].id==schedule[i].id){
+                    classes[classes.length-1].SectionData[j].schedule();
+                }
+            }})
+        }
     }
 }
 
@@ -390,7 +446,7 @@ function setAllSectionPositions(){
 
 //Color each distinct class (not section) on the calendar a different color
 function colorClasses(){
-    const colors = ["#ffd93d","#ff6b6b","#6bcb77","#4d96ff"];
+    const colors = ["#fcd444","#fc4444","#029658","#2f64c1","#b178aa","#fc6404","#f978aa","#8cc43c","#5bc0de","#1abc9c"];
     //Finds how many distinct classes are scheduled
     schedClasses = [];
     for(let x = 0; x<calSections.length; x++){
