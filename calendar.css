@@ -66,10 +66,44 @@
     border: 1px solid grey;
     padding: 1px;
 }
-
+.sectionLabel{
+    font-weight: 500;
+}
 .calendar { 
     flex: auto;
     align-self:auto;
+}
+.caltop {
+    height: 25px;
+    display: flex;
+    margin-bottom: 5px;
+}
+.saveloadsched {
+    margin-left: auto;
+    display: flex;
+}
+.saveloadsched button {
+    height: 23px;
+}
+#scheddropdown {
+    display: none;
+}
+#savesched {
+    margin-left: 5px;
+}
+.dropdown {
+    z-index: 2;
+}
+.dropdown li {
+    background: white;
+    color: black;
+    list-style-type: none;
+    padding: 3px;
+    border: black solid 1px;
+}
+.dropdown li:hover {
+    background: lightgray;
+    cursor: pointer;
 }
 .scrollcalcontainer {
     display: flex;
@@ -101,6 +135,7 @@
     font-size: 11px;
     padding: 1px;
     height: 16px;
+    line-height: 11px;
 }
 .tg  {
     /*border-collapse:collapse;*/

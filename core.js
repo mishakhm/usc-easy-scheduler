@@ -123,8 +123,17 @@ class Section {
         var sectionDiv = document.createElement("div");
         sectionDiv.className = "searchSection";
         
-        addElement("p", "", sectionDiv, this.id + " "
+        var label = addElement("p", "sectionLabel", sectionDiv, this.id + " "
         + this.dclass_code + ": " + this.type);
+        if(this.type.includes("Lec")){
+            label.style.color = "green";
+        }
+        else if(this.type.includes("Lab")){
+            label.style.color = "#66f";
+        }
+        else if(this.type.includes("Qz")){
+            label.style.color = "#909";
+        }
 
 
         var dayText = "";
@@ -397,18 +406,47 @@ function unscheduleAll(){
     }
 }
 
+function saveSchedule(name){
+    var sections = [];
+    for(let i=0;i<calSections.length;i++){
+        var section = {};
+        section.prefix = calSections[i].prefix;
+        section.code = calSections[i].code;
+        section.id = calSections[i].id;
+        sections.push(section);
+    }
+    //If there already exists a schedule with that name, overwrite it
+    for(let i=0;i<schedules.length;i++){
+        if(schedules[i].name==name){
+            if(confirm("A saved schedule with that name already exists, overwrite it?")){
+                schedules[i].sections = sections;
+                chrome.storage.local.set({'schedules': schedules});
+                //Displays name of saved schedule in dropdown bar
+                document.getElementById("schedinput").value = name;
+            }
+                return;
+        }
+    }
+    //If a schedule with that name doesn't exist, this will be reached
+    //and the new schedule will be pushed
+    schedules.push({name: name, sections: sections});
+    chrome.storage.local.set({'schedules': schedules});
+    //Update schedule list dropdown
+    createScheduleList();
+}
+
 //Unschedules current schedule and loads the given
 //schedule[] where each element has {prefix, code, id}
 function loadSchedule(schedule){
     unscheduleAll();
     //Iterate through each section in the schedule
-    for(let i=0; i<schedule.length; i++){
-        var index = containsClass(classes, schedule[i].code);
+    for(let i=0; i<schedule.sections.length; i++){
+        var index = containsClass(classes, schedule.sections[i].code);
         //If the class in the schedule is already in myClasses
         if(index!=-1){
             //Find the matching section id and schedule it
             for(let j=0;j<classes[index].SectionData.length;j++){
-                if(classes[index].SectionData[j].id==schedule[i].id){
+                if(classes[index].SectionData[j].id==schedule.sections[i].id){
                     classes[index].SectionData[j].schedule();
                 }
             }
@@ -416,15 +454,29 @@ function loadSchedule(schedule){
         //If not, add the class to myclasses and schedule it
         else{
             //Add class to myclasses
-            searchAddClass(schedule[i].prefix, term, schedule[i].code)
+            searchAddClass(schedule.sections[i].prefix, term, schedule.sections[i].code)
             .then(function() {
             //Find the matching section id and schedule it
             for(let j=0;j<classes[classes.length-1].SectionData.length;j++){
-                if(classes[classes.length-1].SectionData[j].id==schedule[i].id){
+                if(classes[classes.length-1].SectionData[j].id==schedule.sections[i].id){
                     classes[classes.length-1].SectionData[j].schedule();
                 }
             }})
         }
+    }
+    //Displays name of loaded schedule in dropdown bar
+    document.getElementById("schedinput").value = schedule.name;
+}
+
+//Adds listings for each saved schedule to dropdown
+function createScheduleList(){
+    var dropdown = document.getElementById("scheddropdown");
+    dropdown.innerHTML = "";
+    for(let i=0;i<schedules.length;i++){
+        var listEntry = addElement("li", "", dropdown, schedules[i].name);
+        listEntry.addEventListener('click', function () {
+            loadSchedule(schedules[i]);
+        })
     }
 }
 
@@ -480,7 +532,8 @@ window.addEventListener("resize", setAllSectionPositions);
 chrome.storage.local.set({'term': "20223"})
 var term;
 var classes = [];
-chrome.storage.local.get(['term','classes'], data => {
+var schedules = [];
+chrome.storage.local.get(['term','classes','schedules'], data => {
     term = data.term;
     if (typeof data.classes != "undefined"){
         for(let i = 0; i<data.classes.length; i++){
@@ -488,7 +541,12 @@ chrome.storage.local.get(['term','classes'], data => {
         }
     }
     else{classes = []}
+    if (typeof data.schedules != "undefined"){
+        schedules = data.schedules;
+    }
+    else{schedules = []};
     showMyClasses();
+    createScheduleList();
     showAllScheduled();
 });
 
@@ -500,5 +558,24 @@ input.addEventListener("keypress", function(event) {
         searchDept(event.target.value.toUpperCase(),term);
     }
 });
+
+//Makes it so that clicking the schedules dropdown button shows/hides dropdown
+var button = document.getElementById("scheddropdownbutton");
+button.addEventListener('click', function () {
+    toggleShow(document.getElementById("schedinput").nextElementSibling);
+    //Toggles button appearance to either up or down arrow
+    if(button.innerHTML=="\\/"){
+        button.innerHTML = "/\\";
+    }
+    else{
+        button.innerHTML = "\\/"
+    }
+})
+
+//Add save schedule functionality to "save schedule" button
+//Takes the name of the new schedule from dropdown input box
+document.getElementById("savesched").addEventListener('click', function (){
+    saveSchedule(document.getElementById("schedinput").value);
+})
 
 var calSections = [];
