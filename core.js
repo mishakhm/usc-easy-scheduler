@@ -172,9 +172,16 @@ class Section {
                 + ", " + this.instructor.first_name);}}
         else{addElement("p", "", sectionDiv, "No instructor listed");}
 
-        addElement("p", "", sectionDiv, 
-        this.number_registered
-        + "/" + this.spaces_available);
+        //Shows number of people registed for a section, and "closed" if full
+        if(this.number_registered == this.spaces_available){
+            var numReg = addElement("p", "", sectionDiv, 
+            this.number_registered + "/" + this.spaces_available + " Closed");
+            numReg.style.color = "red";
+        }
+        else{
+            addElement("p", "", sectionDiv, 
+            this.number_registered + "/" + this.spaces_available);
+        }
 
         //Add "schedule section" button if this is called for myClasses
         if(type == "myClasses"){
@@ -233,7 +240,8 @@ class Section {
             //Change the "schedule section" button in myClasses to "unschedule section"
             var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
             schedSectButton.innerHTML = "Unschedule section";
-            schedSectButton.style.color = "red";
+            // schedSectButton.style.color = "red";
+            this.sectionDiv.style.background = "#d7ffd7";
             schedSectButton.removeEventListener('click', this.sched);
             schedSectButton.addEventListener('click', this.unsched);
             //Add the section to the array of currently scheduled sections
@@ -241,6 +249,7 @@ class Section {
             //Save myClasses because this.scheduled has changed
             chrome.storage.local.set({'classes': classes});
             colorClasses();
+            colorConflicts();
         }
     }
     //Properly positions the section's divs on calendar according to date/time
@@ -288,7 +297,8 @@ class Section {
         //Change the "unschedule section" button in myClasses to "schedule section"
         var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
         schedSectButton.innerHTML = "Schedule section";
-        schedSectButton.style.color = "black";
+        // schedSectButton.style.color = "black";
+        this.sectionDiv.style.background = "white";
         schedSectButton.removeEventListener('click', this.unsched);
         schedSectButton.addEventListener('click', this.sched);
         //Should be updated when calSections[] functionality is updated
@@ -302,6 +312,7 @@ class Section {
         //Save myClasses because this.scheduled has changed
         chrome.storage.local.set({'classes': classes});
         colorClasses();
+        colorConflicts();
     }
 }
 
@@ -515,6 +526,87 @@ function colorClasses(){
     }
 }
 
+function colorConflicts(){
+    for(let i=0;i<classes.length;i++){
+        for(let j=0;j<classes[i].SectionData.length;j++){
+            if(classes[i].SectionData[j].scheduled==false){
+                if(classes[i].SectionData[j].conflicts().length>0){
+                    classes[i].SectionData[j].sectionDiv.style.background = "pink";
+                }
+                else{
+                    classes[i].SectionData[j].sectionDiv.style.background = "white";
+                }
+            }
+        }
+    }
+}
+
+//Gets new info from USC servers and updates info for each class in myClasses
+function updateInfo(term){
+    //Find all needed departments to update classes from
+    var depts = [];
+    for(let i=0;i<classes.length;i++){
+        if(!depts.includes(classes[i].prefix)){
+            depts.push(classes[i].prefix);
+        }
+    }
+    //Pull info for each department, and update relevant classes in myClasses
+    (async function (){
+        for(let i=0;i<depts.length;i++){
+            var url = "https://web-app.usc.edu/web/soc/api/classes/"
+            + encodeURIComponent(depts[i]) + "/" + encodeURIComponent(term);
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                //Iterate through all classes in myClasses
+                for(let j=0;j<classes.length;j++){
+                    //Proceed if the current class is in this searched department
+                    if(classes[j].prefix==depts[i]){
+                        //Iterate through all the classes returned by search
+                        //and check if they are the same class as the current
+                        //class from myClass to be updated
+                        for(let k=0;k<data.OfferedCourses.course.length;k++){
+                            var currentCourse = new Course(
+                                data.OfferedCourses.course[k].CourseData);
+                            if(classes[j].code == currentCourse.code){
+                                //Once class match is found, iterate through
+                                //each section and update it with the
+                                //corresponding section from search
+                                for(let l=0;l<classes[j].SectionData.length;l++){
+                                    var matches = currentCourse.SectionData.filter(
+                                        e => e.id === classes[j].SectionData[l].id);
+                                    if(matches.length==1){
+                                        var scheduled = classes[j].SectionData[l].scheduled;
+                                        classes[j].SectionData[l] = matches[0];
+                                        classes[j].SectionData[l].scheduled = scheduled;
+                                    }
+                                    else{
+                                        //TO-DO: Expand error catching for this
+                                        alert("Error updating class info");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //Once all classes/departments have been done,
+                //save the updated info
+                //and reload the page so HTML can be regenerated
+                if(i==depts.length-1){
+                    chrome.storage.local.set({'classes': classes});
+                    lastRefresh = new Date();
+                    lastRefresh = lastRefresh.toLocaleString('default',
+                    { month: 'short' }) + ' ' + lastRefresh.getDate() + ' '
+                    // + lastRefresh.getHours() + ':' + lastRefresh.getMinutes();
+                    + lastRefresh.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})
+                    chrome.storage.local.set({'lastRefresh': lastRefresh});
+                    location.reload();
+                }
+            })
+        }
+    })();
+}
+
 //Listen for changes in webpage zoom, update calendar div positions if needed
 function monitorDevicePixelRatio() {
     function onPixelRatioChange() {
@@ -529,12 +621,15 @@ monitorDevicePixelRatio();
 //Update calendar div positions on window resize
 window.addEventListener("resize", setAllSectionPositions);
 
-chrome.storage.local.set({'term': "20223"})
+var calSections = [];
+chrome.storage.local.set({'term': "20223"});
 var term;
 var classes = [];
 var schedules = [];
-chrome.storage.local.get(['term','classes','schedules'], data => {
+var lastRefresh;
+chrome.storage.local.get(['term','classes','schedules',"lastRefresh"], data => {
     term = data.term;
+    lastRefresh = data.lastRefresh;
     if (typeof data.classes != "undefined"){
         for(let i = 0; i<data.classes.length; i++){
             classes.push(new Course(data.classes[i]));
@@ -548,6 +643,8 @@ chrome.storage.local.get(['term','classes','schedules'], data => {
     showMyClasses();
     createScheduleList();
     showAllScheduled();
+    //Show last time class info was refreshed
+    document.getElementById("last").innerHTML = "Last: " + lastRefresh;
 });
 
 //Adds search listener to dept search box
@@ -578,4 +675,7 @@ document.getElementById("savesched").addEventListener('click', function (){
     saveSchedule(document.getElementById("schedinput").value);
 })
 
-var calSections = [];
+//Add update class info functionality to relevant button click
+document.getElementById("update").addEventListener('click', function (){
+    updateInfo(term);
+})

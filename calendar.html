@@ -9,8 +9,16 @@
     <body>  
         <div class="flex-container">
              
-            <div class="classes">Classes
+            <div class="classes">
+                Classes
                 <div class="classesContainer" id="myClassesContainer"></div>
+                <div class="classesbottom">
+                    <div class="tooltip">
+                        <button id="update">Refresh</button>
+                        <span class="tooltipright" style="width: 235px;">Refresh class info from USC servers</span>
+                    </div>
+                    <div id="last">Last: never</div>
+                </div>
             </div>
             <div class="calendar">
                 <div class="caltop">
@@ -52,13 +60,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">6:00 AM<br></td>
@@ -71,13 +79,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">7:00 AM</td>
@@ -90,13 +98,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">8:00 AM</td>
@@ -109,13 +117,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">9:00 AM</td>
@@ -128,13 +136,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">10:00 AM</td>
@@ -147,13 +155,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">11:00 AM</td>
@@ -166,13 +174,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">12:00 PM</td>
@@ -185,13 +193,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">1:00 PM</td>
@@ -204,13 +212,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">2:00 PM</td>
@@ -223,13 +231,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">3:00 PM</td>
@@ -242,13 +250,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">4:00 PM</td>
@@ -261,13 +269,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">5:00 PM</td>
@@ -280,13 +288,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">6:00 PM</td>
@@ -299,13 +307,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">7:00 PM</td>
@@ -318,13 +326,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">8:00 PM</td>
@@ -337,13 +345,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">9:00 PM</td>
@@ -356,13 +364,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                                 <tr>
                                 <td class="cal-time" rowspan="2">10:00 PM</td>
@@ -375,13 +383,13 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-weekend cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekday cal-day"></td>
-                                <td class="cal-weekend cal-day"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekday cal-day cal-30"></td>
+                                <td class="cal-weekend cal-day cal-30"></td>
                                 </tr>
                             </tbody>
                         </table>
