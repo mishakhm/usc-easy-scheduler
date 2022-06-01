@@ -175,6 +175,13 @@
     height: 16px;
     line-height: 11px;
 }
+.calpossible {
+    background: pink;
+    opacity: 75%;
+}
+.dragover {
+    border: 3px dotted #666;
+}
 .tg  {
     /*border-collapse:collapse;*/
     border-color: separate;

@@ -22,6 +22,7 @@ class Course {
                 }
                 //Grab all sections, as Section class objects
                 this.SectionData.push(new Section(CourseData.SectionData[i], this.code, this.prefix));
+                this.SectionData[i].parent = this;
             }}
             else{
                 this.units = CourseData.SectionData.units;
@@ -118,6 +119,8 @@ class Section {
             }}
         this.sched = () => this.schedule();
         this.unsched = () => this.unschedule();
+        this.calDragStart = (event) => calDragStart(this.parent,this.type,this,event);
+        this.calDragEnd = () => calDragEnd(this);
     }
     createHTML(addTo, type){
         var sectionDiv = document.createElement("div");
@@ -217,6 +220,7 @@ class Section {
     schedule(){
         if(this.conflicts().length > 0){
             alert("This section conflicts with an already scheduled section");
+            return false;
         }
         else{
             this.scheduled = true;
@@ -225,6 +229,10 @@ class Section {
             for(let i = 0; i<this.daySections.length; i++){
                 var sectionDiv = addElement("div", "calsection", cal,
                 this.code + ": (" + this.id + "), " + this.type);
+                //Make the section draggable
+                sectionDiv.setAttribute("draggable",true);
+                sectionDiv.addEventListener("dragstart", this.calDragStart);
+                sectionDiv.addEventListener("dragend", this.calDragEnd);
 
                 unschedButton.push(addElement("button", "", sectionDiv, "X"));
 
@@ -250,6 +258,7 @@ class Section {
             chrome.storage.local.set({'classes': classes});
             colorClasses();
             colorConflicts();
+            return true;
         }
     }
     //Properly positions the section's divs on calendar according to date/time
@@ -505,6 +514,94 @@ function setAllSectionPositions(){
     for(let x = 0; x<calSections.length; x++){
         calSections[x].position();
     }
+}
+
+function unschedID(id){
+    for(let i=0;i<calSections.length;i++){
+        if(calSections[i].id == id){
+            calSections[i].unschedule();
+        }
+    }
+}
+
+//For section being dragged
+function calDragStart(course, type, current, event) {
+    showPossiblePositions(course, type, current);
+    //Make the section being dragged translucent
+    for(let i=0;i<current.daySections.length;i++){
+        current.daySections[i].sectionDiv.style.opacity = "0.5";
+    }
+    event.dataTransfer.setData("text/plain", current.id)
+}
+function calDragEnd(current) {
+    unshowPossible();
+    //Make the section being dragged non-translucent again
+    for (let i = 0; i < current.daySections.length; i++) {
+        current.daySections[i].sectionDiv.style.opacity = "1";
+    }
+}
+//For possible sections
+function calDragEnter(section) {
+    for(let i=0;i<section.daySections.length;i++){
+        section.daySections[i].sectionDiv.classList.add("dragover");
+    }
+}
+function calDragLeave(section) {
+    for(let i=0;i<section.daySections.length;i++){
+        section.daySections[i].sectionDiv.classList.remove("dragover");
+    }
+}
+function calDrop(orig, event) {
+    if(orig.schedule()){
+        unschedID(event.dataTransfer.getData("text/plain"));
+    }
+}
+
+var possibleSections = [];
+function showPossiblePositions(course, type, current){
+    //Create array of all sections of given type for the given class
+    for(let i=0;i<course.SectionData.length;i++){
+        if(course.SectionData[i].type === type && course.SectionData[i] !== current){
+            possibleSections.push(new Section (course.SectionData[i]));
+            //Add pointer to the original section in myClasses
+            possibleSections[possibleSections.length-1].orig = course.SectionData[i];
+        }
+    }
+    //Create lightly colored divs on calendar for all sections' daysections
+    for(let i=0;i<possibleSections.length;i++){
+        for(let j=0;j<possibleSections[i].daySections.length;j++){
+            possibleSections[i].daySections[j].sectionDiv = addElement("div",
+                "calsection calpossible",
+                document.getElementById("scrollcal"), "");
+            possibleSections[i].daySections[j].sectionDiv.addEventListener(
+                "dragenter", function(event){
+                    event.preventDefault();
+                    calDragEnter(possibleSections[i]);
+                });
+            possibleSections[i].daySections[j].sectionDiv.addEventListener(
+                "dragover", function(event){
+                    event.preventDefault();
+                });
+            possibleSections[i].daySections[j].sectionDiv.addEventListener(
+                "dragleave", function(){
+                    calDragLeave(possibleSections[i]);
+                });
+            possibleSections[i].daySections[j].sectionDiv.addEventListener(
+                "drop", function(event){
+                    calDrop(possibleSections[i].orig, event);
+                });
+        }
+        possibleSections[i].position();
+    }
+}
+
+function unshowPossible() {
+    for (let i = 0; i < possibleSections.length; i++) {
+        for (let j = 0; j < possibleSections[i].daySections.length; j++) {
+            possibleSections[i].daySections[j].sectionDiv.remove();
+        }
+    }
+    possibleSections = [];
 }
 
 //Color each distinct class (not section) on the calendar a different color
