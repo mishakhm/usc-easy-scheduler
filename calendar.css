@@ -164,6 +164,7 @@
     line-height: 1em;
     background: #ffcc00;
     color: black;
+    cursor: grab;
 }
 .calsection button {
     position: absolute;
@@ -178,6 +179,27 @@
 .calpossible {
     background: pink;
     opacity: 75%;
+    text-align: center;
+    border: 3px solid #fda6b4;
+}
+.calpossiblemult {
+    /* position: absolute; */
+}
+.calpossiblelist {
+    position: absolute;
+    z-index: 1;
+    background-color: black;
+    padding: 5px;
+    border-radius: 6px;
+    /* top: -3px; */
+    /* left: 105%; */
+}
+.calpossiblelist .calpossible {
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 5px;
+    opacity: 100%;
 }
 .dragover {
     border: 3px dotted #666;

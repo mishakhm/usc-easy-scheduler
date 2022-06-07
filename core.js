@@ -263,42 +263,44 @@ class Section {
     }
     //Properly positions the section's divs on calendar according to date/time
     position(){
-        //Probably inefficient to get every element with this class name every single time
-        var calDay = document.getElementsByClassName("cal-day");
-        var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
-        var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
+        // //Probably inefficient to get every element with this class name every single time
+        // var calDay = document.getElementsByClassName("cal-day");
+        // var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
+        // var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
 
-        var timeOffset = ((this.startHours-5)*2+this.startMinutes/30)*7+7;
+        // var timeOffset = ((this.startHours-5)*2+this.startMinutes/30)*7+7;
 
         for(let i = 0; i<this.daySections.length; i++){
-            var dayOffset = 0;
-            if(this.daySections[i].day == "M"){
-                dayOffset += 1;}
-            else if(this.daySections[i].day == "T"){
-                dayOffset += 2;}
-            else if(this.daySections[i].day == "W"){
-                dayOffset += 3;}
-            else if(this.daySections[i].day == "H"){
-                dayOffset += 4;}
-            else if(this.daySections[i].day == "F"){
-                dayOffset += 5;}
-            var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
+            positionDaySection(this.daySections[i].sectionDiv, this.startHours,
+                this.startMinutes, this.endHours, this.endMinutes, this.daySections[i].day)
+        //     var dayOffset = 0;
+        //     if(this.daySections[i].day == "M"){
+        //         dayOffset += 1;}
+        //     else if(this.daySections[i].day == "T"){
+        //         dayOffset += 2;}
+        //     else if(this.daySections[i].day == "W"){
+        //         dayOffset += 3;}
+        //     else if(this.daySections[i].day == "H"){
+        //         dayOffset += 4;}
+        //     else if(this.daySections[i].day == "F"){
+        //         dayOffset += 5;}
+        //     var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
 
-            var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
-                +headerRect.height;
-            var height = cellRect.height/30
-                *((this.endHours-this.startHours)*60
-                +this.endMinutes-this.startMinutes);
+        //     var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
+        //         +headerRect.height;
+        //     var height = cellRect.height/30
+        //         *((this.endHours-this.startHours)*60
+        //         +this.endMinutes-this.startMinutes);
             
-            this.daySections[i].sectionDiv.style.top =
-                top.toString() + "px";
-            this.daySections[i].sectionDiv.style.height =
-                height.toString() + "px";
+        //     this.daySections[i].sectionDiv.style.top =
+        //         top.toString() + "px";
+        //     this.daySections[i].sectionDiv.style.height =
+        //         height.toString() + "px";
 
-            this.daySections[i].sectionDiv.style.left = 
-                (cellRect.x - timeRect.x).toString() + "px";
-            this.daySections[i].sectionDiv.style.width = 
-                (0.95*cellRect.width).toString() + "px";
+        //     this.daySections[i].sectionDiv.style.left = 
+        //         (cellRect.x - timeRect.x).toString() + "px";
+        //     this.daySections[i].sectionDiv.style.width = 
+        //         (0.95*cellRect.width).toString() + "px";
         }
     }
     unschedule(){
@@ -516,10 +518,43 @@ function setAllSectionPositions(){
     }
 }
 
-function unschedID(id){
+function positionDaySection(div, startHours, startMinutes, endHours, endMinutes, day){
+    //Probably inefficient to get every element with this class name every single time
+    var calDay = document.getElementsByClassName("cal-day");
+    var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
+    var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
+
+    var timeOffset = ((startHours-5)*2+startMinutes/30)*7+7;
+    var dayOffset = 0;
+    if(day == "M"){
+        dayOffset += 1;}
+    else if(day == "T"){
+        dayOffset += 2;}
+    else if(day == "W"){
+        dayOffset += 3;}
+    else if(day == "H"){
+        dayOffset += 4;}
+    else if(day == "F"){
+        dayOffset += 5;}
+    var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
+
+    var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
+        +headerRect.height;
+    var height = cellRect.height/30
+        *((endHours-startHours)*60
+        +endMinutes-startMinutes);
+    
+    div.style.top = top.toString() + "px";
+    div.style.height = height.toString() + "px";
+
+    div.style.left = (cellRect.x - timeRect.x).toString() + "px";
+    div.style.width = (0.95*cellRect.width).toString() + "px";
+}
+
+function findCalSectionByID(id){
     for(let i=0;i<calSections.length;i++){
         if(calSections[i].id == id){
-            calSections[i].unschedule();
+            return calSections[i];
         }
     }
 }
@@ -552,12 +587,71 @@ function calDragLeave(section) {
     }
 }
 function calDrop(orig, event) {
-    if(orig.schedule()){
-        unschedID(event.dataTransfer.getData("text/plain"));
+    var dropSection = findCalSectionByID(event.dataTransfer.getData("text/plain"));
+    //If the new section is an exact match for time/day with the originally
+    //dragged section, unschedule the original and replace it with the new
+    if(timeDayMatch(orig, dropSection, 0)){
+        dropSection.unschedule();
+        orig.schedule();
+    }
+    //If the new section is not an exact match, see if it's possible to
+    //schedule it, and unschedule the original section only if that succeeds
+    else if(orig.schedule()){
+        dropSection.unschedule();
     }
 }
 
+function calMultipleDragEnter(outerdiv, div, daySections){
+    var list = addElement("div",
+    "calpossiblelist", outerdiv, "");
+    var divRect = div.getBoundingClientRect();
+    var outerdivRect = outerdiv.getBoundingClientRect();
+    var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
+    list.style.top = (divRect.top - headerRect.top).toString() + "px";
+    list.style.left = (divRect.right - outerdivRect.left).toString() + "px";
+    for(let i=0;i<daySections.length;i++){
+        daySections[i].sectionDiv = calPossible(daySections[i], list);
+    }
+    return list;
+}
+
+function calMultipleDragLeave(list, daySections){
+    list.remove();
+}
+
+//Generate a calpossible div for given daySection
+function calPossible(daySection, addTo){
+    var div = addElement("div", "calsection calpossible",
+    addTo, daySection.parent.number_registered + "/"
+    + daySection.parent.spaces_available);
+    div.addEventListener(
+    "dragenter", function(event){
+        event.preventDefault();
+        calDragEnter(daySection.parent);
+    });
+    div.addEventListener(
+    "dragover", function(event){
+        event.preventDefault();
+    });
+    div.addEventListener(
+    "dragleave", function(){
+        calDragLeave(daySection.parent);
+    });
+    div.addEventListener(
+    "drop", function(event){
+        calDrop(daySection.parent.orig, event);
+    });
+    return div;
+}
+
+function timeDayMatch(e, compare, index) {
+    return e.start_time == compare.start_time
+        && e.end_time == compare.end_time
+        && e.day == compare.daySections[index].day;
+}
+
 var possibleSections = [];
+var unique = [];
 function showPossiblePositions(course, type, current){
     //Create array of all sections of given type for the given class
     for(let i=0;i<course.SectionData.length;i++){
@@ -567,41 +661,134 @@ function showPossiblePositions(course, type, current){
             possibleSections[possibleSections.length-1].orig = course.SectionData[i];
         }
     }
-    //Create lightly colored divs on calendar for all sections' daysections
+    //Create a list of unique start time/end time/day combinations
+    //and all corresponding daySections
     for(let i=0;i<possibleSections.length;i++){
         for(let j=0;j<possibleSections[i].daySections.length;j++){
-            possibleSections[i].daySections[j].sectionDiv = addElement("div",
-                "calsection calpossible",
-                document.getElementById("scrollcal"), "");
-            possibleSections[i].daySections[j].sectionDiv.addEventListener(
-                "dragenter", function(event){
-                    event.preventDefault();
-                    calDragEnter(possibleSections[i]);
-                });
-            possibleSections[i].daySections[j].sectionDiv.addEventListener(
-                "dragover", function(event){
-                    event.preventDefault();
-                });
-            possibleSections[i].daySections[j].sectionDiv.addEventListener(
-                "dragleave", function(){
-                    calDragLeave(possibleSections[i]);
-                });
-            possibleSections[i].daySections[j].sectionDiv.addEventListener(
-                "drop", function(event){
-                    calDrop(possibleSections[i].orig, event);
-                });
+            //Add pointer to each daySection's overall section
+            possibleSections[i].daySections[j].parent = possibleSections[i];
+
+            //Check if this start/end/day combination is already in the
+            //unique array, and if not, add it along w/ the current daySection
+            if(unique.filter(e => timeDayMatch(e, possibleSections[i], j)).length==0){
+                unique.push({
+                    start_time: possibleSections[i].start_time,
+                    end_time: possibleSections[i].end_time,
+                    day: possibleSections[i].daySections[j].day,
+                    daySections: [possibleSections[i].daySections[j]]
+                })
+            }
+            //If this start/end/day combination already exists in the
+            //unique array, add this daySection to that existing entry
+            else {
+                unique[unique.findIndex(e => timeDayMatch(e, possibleSections[i], j))].daySections.push(
+                    possibleSections[i].daySections[j]
+                )
+            }
         }
-        possibleSections[i].position();
     }
+    for(let i=0; i<unique.length;i++){
+        if(timeDayMatch(unique[i], current, 0)){
+            unique[i].outerdiv = addElement("div",
+            "calpossiblemult", document.getElementById("scrollcal"), "");
+            unique[i].div = addElement("div",
+            "calsection calpossible",
+            unique[i].outerdiv, "...");
+            unique[i].div.style.zIndex = "-1";
+            positionDaySection(unique[i].div, unique[i].daySections[0].parent.startHours,
+                unique[i].daySections[0].parent.startMinutes,
+                unique[i].daySections[0].parent.endHours,
+                unique[i].daySections[0].parent.endMinutes,
+                unique[i].daySections[0].day);
+            var list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
+            continue;
+        }
+        if(unique[i].daySections.length==1){
+            unique[i].daySections[0].sectionDiv = calPossible(
+                unique[i].daySections[0], document.getElementById("scrollcal"));
+            positionDaySection(unique[i].daySections[0].sectionDiv,
+                unique[i].daySections[0].parent.startHours, 
+                unique[i].daySections[0].parent.startMinutes,
+                unique[i].daySections[0].parent.endHours,
+                unique[i].daySections[0].parent.endMinutes,
+                unique[i].daySections[0].day);
+            }
+        else{
+            unique[i].outerdiv = addElement("div",
+            "calpossiblemult", document.getElementById("scrollcal"), "");
+            unique[i].div = addElement("div",
+            "calsection calpossible",
+            unique[i].outerdiv, "...");
+            var list;
+            unique[i].div.addEventListener(
+            "dragenter", function(event){
+                event.preventDefault();
+                list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
+            });
+            unique[i].div.addEventListener(
+            "dragover", function(event){
+                event.preventDefault();
+            });
+            // unique[i].div.addEventListener(
+            // "dragleave", function(){
+            //     calMultipleDragLeave(list, unique[i].daySections);
+            // });
+            // div.addEventListener(
+            // "drop", function(event){
+            //     calMultipleDrop(daySection.parent.orig, event);
+            // });
+            positionDaySection(unique[i].div, unique[i].daySections[0].parent.startHours,
+                unique[i].daySections[0].parent.startMinutes,
+                unique[i].daySections[0].parent.endHours,
+                unique[i].daySections[0].parent.endMinutes,
+                unique[i].daySections[0].day);
+        }
+    }
+    //Create lightly colored divs on calendar for all sections' daysections
+    // for(let i=0;i<possibleSections.length;i++){
+    //     for(let j=0;j<possibleSections[i].daySections.length;j++){
+    //         possibleSections[i].daySections[j].sectionDiv = addElement("div",
+    //             "calsection calpossible",
+    //             document.getElementById("scrollcal"),
+    //             possibleSections[i].number_registered + "/"
+    //             + possibleSections[i].spaces_available);
+    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
+    //             "dragenter", function(event){
+    //                 event.preventDefault();
+    //                 calDragEnter(possibleSections[i]);
+    //             });
+    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
+    //             "dragover", function(event){
+    //                 event.preventDefault();
+    //             });
+    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
+    //             "dragleave", function(){
+    //                 calDragLeave(possibleSections[i]);
+    //             });
+    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
+    //             "drop", function(event){
+    //                 calDrop(possibleSections[i].orig, event);
+    //             });
+    //     }
+    //     possibleSections[i].position();
+    // }
 }
 
 function unshowPossible() {
-    for (let i = 0; i < possibleSections.length; i++) {
-        for (let j = 0; j < possibleSections[i].daySections.length; j++) {
-            possibleSections[i].daySections[j].sectionDiv.remove();
+    for(let i = 0; i<possibleSections.length; i++) {
+        for(let j = 0; j<possibleSections[i].daySections.length; j++) {
+            if(typeof possibleSections[i].daySections[j].sectionDiv != "undefined"){
+                possibleSections[i].daySections[j].sectionDiv.remove();
+            }
+        }
+    }
+    for(let i=0; i<unique.length; i++){
+        if(typeof unique[i].outerdiv != "undefined"){
+            unique[i].outerdiv.remove();
         }
     }
     possibleSections = [];
+    unique = [];
 }
 
 //Color each distinct class (not section) on the calendar a different color
