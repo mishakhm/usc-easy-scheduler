@@ -91,6 +91,25 @@ class Section {
         this.prefix = prefix;
         this.id = SectionData.id;
         this.instructor = SectionData.instructor;
+        this.proflist = "";
+        if (typeof this.instructor != "undefined"){
+            if(Array.isArray(this.instructor)){
+                for(let i = 0; i<this.instructor.length;i++){
+                    this.proflist += this.instructor[i].first_name + " "
+                    + this.instructor[i].last_name;
+                    if(i != this.instructor.length-1){
+                        this.proflist += ", ";
+                    }
+                }
+            }
+            else{
+                this.profList = this.instructor.first_name + " "
+                + this.instructor.last_name;
+            }
+        }
+        else {
+            this.profList = "No prof listed";
+        }
         this.type = SectionData.type;
         this.dclass_code = SectionData.dclass_code;
         this.number_registered = SectionData.number_registered;
@@ -110,12 +129,22 @@ class Section {
         else{
             this.scheduled = false;
         }
+        this.parsedDay = "";
         if(typeof this.day == "string"){
             var dayParse = this.day;
             while (dayParse != ""){
-                var currentDay = dayParse.slice(-1);
-                dayParse = dayParse.slice(0,-1);
-                this.daySections.push({day: currentDay});   
+                var currentDay = dayParse.slice(0,1);
+                dayParse = dayParse.slice(1);
+                this.daySections.push({day: currentDay});  
+                if (currentDay == "T"){
+                    this.parsedDay += "Tu";
+                }
+                else if (currentDay == "H"){
+                    this.parsedDay += "Th";
+                }
+                else {
+                    this.parsedDay += currentDay;
+                }
             }}
         this.sched = () => this.schedule();
         this.unsched = () => this.unschedule();
@@ -138,26 +167,12 @@ class Section {
             label.style.color = "#909";
         }
 
-
-        var dayText = "";
+        //Display days for which this section meets
         if(typeof this.day == "string"){
-            var dayParse = this.day;
-            while (dayParse != ""){
-                var currentDay = dayParse.slice(0,1);
-                dayParse = dayParse.slice(1);
-                if (currentDay == "T"){
-                    dayText += "Tu";
-                }
-                else if (currentDay == "H"){
-                    dayText += "Th";
-                }
-                else {
-                    dayText += currentDay;
-                }
-            }    
+            var dayText = this.parsedDay;
         }
         else{
-            dayText = "No days listed, times:";}
+            var dayText = "No days listed, times:";}
         addElement("p", "", sectionDiv, dayText + " "
         + this.start_time + "-" + this.end_time);
 
@@ -561,11 +576,18 @@ function findCalSectionByID(id){
 
 //For section being dragged
 function calDragStart(course, type, current, event) {
-    showPossiblePositions(course, type, current);
-    //Make the section being dragged translucent
-    for(let i=0;i<current.daySections.length;i++){
-        current.daySections[i].sectionDiv.style.opacity = "0.5";
-    }
+    setTimeout(function(){
+        showPossiblePositions(course, type, current);
+        //Make the section being dragged translucent
+        for(let i=0;i<current.daySections.length;i++){
+            current.daySections[i].sectionDiv.style.opacity = "0.5";
+        }
+    }, "10")
+    // showPossiblePositions(course, type, current);
+    // //Make the section being dragged translucent
+    // for(let i=0;i<current.daySections.length;i++){
+    //     current.daySections[i].sectionDiv.style.opacity = "0.5";
+    // }
     event.dataTransfer.setData("text/plain", current.id)
 }
 function calDragEnd(current) {
@@ -588,16 +610,11 @@ function calDragLeave(section) {
 }
 function calDrop(orig, event) {
     var dropSection = findCalSectionByID(event.dataTransfer.getData("text/plain"));
-    //If the new section is an exact match for time/day with the originally
-    //dragged section, unschedule the original and replace it with the new
-    if(timeDayMatch(orig, dropSection, 0)){
-        dropSection.unschedule();
-        orig.schedule();
-    }
-    //If the new section is not an exact match, see if it's possible to
-    //schedule it, and unschedule the original section only if that succeeds
-    else if(orig.schedule()){
-        dropSection.unschedule();
+    dropSection.unschedule();
+    //If the new section fails to schedule (because of a conflict), reschedule
+    //the original so everything remains as before
+    if(!orig.schedule()){
+        dropSection.schedule();
     }
 }
 
@@ -606,16 +623,15 @@ function calMultipleDragEnter(outerdiv, div, daySections){
     "calpossiblelist", outerdiv, "");
     var divRect = div.getBoundingClientRect();
     var outerdivRect = outerdiv.getBoundingClientRect();
-    var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
-    list.style.top = (divRect.top - headerRect.top).toString() + "px";
-    list.style.left = (divRect.right - outerdivRect.left).toString() + "px";
+    list.style.top = div.style.top;
+    list.style.left = (divRect.right - outerdivRect.left - 5).toString() + "px";
     for(let i=0;i<daySections.length;i++){
         daySections[i].sectionDiv = calPossible(daySections[i], list);
     }
     return list;
 }
 
-function calMultipleDragLeave(list, daySections){
+function calMultipleDragLeave(list){
     list.remove();
 }
 
@@ -624,6 +640,12 @@ function calPossible(daySection, addTo){
     var div = addElement("div", "calsection calpossible",
     addTo, daySection.parent.number_registered + "/"
     + daySection.parent.spaces_available);
+    div.appendChild(document.createElement("br"));
+    div.appendChild(document.createTextNode(daySection.parent.profList));
+    if(daySection.parent.day.length>1){
+        div.appendChild(document.createElement("br"));
+        div.appendChild(document.createTextNode(daySection.parent.parsedDay));
+    }
     div.addEventListener(
     "dragenter", function(event){
         event.preventDefault();
@@ -648,6 +670,16 @@ function timeDayMatch(e, compare, index) {
     return e.start_time == compare.start_time
         && e.end_time == compare.end_time
         && e.day == compare.daySections[index].day;
+}
+
+//Check if two DOM elements are overlapping using axis-aligned bounding boxes
+function rectOverlap(e, compare) {
+    var rect = e.getBoundingClientRect();
+    var compRect = compare.getBoundingClientRect();
+    return (rect.left < compRect.right &&
+        rect.right > compRect.left &&
+        rect.top < compRect.bottom &&
+        rect.bottom > compRect.top)
 }
 
 var possibleSections = [];
@@ -688,22 +720,7 @@ function showPossiblePositions(course, type, current){
         }
     }
     for(let i=0; i<unique.length;i++){
-        if(timeDayMatch(unique[i], current, 0)){
-            unique[i].outerdiv = addElement("div",
-            "calpossiblemult", document.getElementById("scrollcal"), "");
-            unique[i].div = addElement("div",
-            "calsection calpossible",
-            unique[i].outerdiv, "...");
-            unique[i].div.style.zIndex = "-1";
-            positionDaySection(unique[i].div, unique[i].daySections[0].parent.startHours,
-                unique[i].daySections[0].parent.startMinutes,
-                unique[i].daySections[0].parent.endHours,
-                unique[i].daySections[0].parent.endMinutes,
-                unique[i].daySections[0].day);
-            var list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
-            continue;
-        }
-        if(unique[i].daySections.length==1){
+        if(unique[i].daySections.length==1 && !timeDayMatch(current,unique[i],0)){
             unique[i].daySections[0].sectionDiv = calPossible(
                 unique[i].daySections[0], document.getElementById("scrollcal"));
             positionDaySection(unique[i].daySections[0].sectionDiv,
@@ -719,24 +736,36 @@ function showPossiblePositions(course, type, current){
             unique[i].div = addElement("div",
             "calsection calpossible",
             unique[i].outerdiv, "...");
-            var list;
             unique[i].div.addEventListener(
             "dragenter", function(event){
                 event.preventDefault();
-                list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
+                //Create list div only if it doesn't already exist
+                if(typeof unique[i].list == "undefined"){
+                    unique[i].list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
+                }
             });
             unique[i].div.addEventListener(
             "dragover", function(event){
                 event.preventDefault();
             });
-            // unique[i].div.addEventListener(
-            // "dragleave", function(){
-            //     calMultipleDragLeave(list, unique[i].daySections);
-            // });
-            // div.addEventListener(
-            // "drop", function(event){
-            //     calMultipleDrop(daySection.parent.orig, event);
-            // });
+            unique[i].outerdiv.addEventListener(
+            "dragleave", function(e){
+                var divRect = unique[i].div.getBoundingClientRect();
+                var listRect = unique[i].list.getBoundingClientRect();
+                //Check that the cursor is outside both the list and the
+                //calpossible div, and only then remove the list div
+                if ((e.clientY < listRect.top ||
+                    e.clientY >= listRect.bottom ||
+                    e.clientX < listRect.left ||
+                    e.clientX >= listRect.right) &&
+                    (e.clientY < divRect.top ||
+                    e.clientY >= divRect.bottom ||
+                    e.clientX < divRect.left ||
+                    e.clientX >= divRect.right)) {
+                    calMultipleDragLeave(unique[i].list);
+                    unique[i].list = undefined;
+                  }
+            });
             positionDaySection(unique[i].div, unique[i].daySections[0].parent.startHours,
                 unique[i].daySections[0].parent.startMinutes,
                 unique[i].daySections[0].parent.endHours,
@@ -744,35 +773,74 @@ function showPossiblePositions(course, type, current){
                 unique[i].daySections[0].day);
         }
     }
-    //Create lightly colored divs on calendar for all sections' daysections
-    // for(let i=0;i<possibleSections.length;i++){
-    //     for(let j=0;j<possibleSections[i].daySections.length;j++){
-    //         possibleSections[i].daySections[j].sectionDiv = addElement("div",
-    //             "calsection calpossible",
-    //             document.getElementById("scrollcal"),
-    //             possibleSections[i].number_registered + "/"
-    //             + possibleSections[i].spaces_available);
-    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
-    //             "dragenter", function(event){
-    //                 event.preventDefault();
-    //                 calDragEnter(possibleSections[i]);
-    //             });
-    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
-    //             "dragover", function(event){
-    //                 event.preventDefault();
-    //             });
-    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
-    //             "dragleave", function(){
-    //                 calDragLeave(possibleSections[i]);
-    //             });
-    //         possibleSections[i].daySections[j].sectionDiv.addEventListener(
-    //             "drop", function(event){
-    //                 calDrop(possibleSections[i].orig, event);
-    //             });
-    //     }
-    //     possibleSections[i].position();
-    // }
+    //If sections overlap but not perfectly, scales down their width
+    //to fit them usably side by side
+    for(let i=0; i<unique.length; i++){
+        //Holds all divs that overlap with unique[i]
+        var overlaps = [];
+        //Adjusts for div variable placement based on whether this unique time
+        //has multiple sections or just one
+        if(unique[i].daySections.length==1){
+            var div = unique[i].daySections[0].sectionDiv;
+        }
+        else{
+            var div = unique[i].div;
+        }
+        //Sets a base width denominator of 1 for this div, if one is not set
+        if(typeof unique[i].widthDenom == "undefined"){
+            unique[i].widthDenom = 1;
+        }
+        var origWidth = parseFloat(div.style.width);
+        for(let j=0; j<unique.length; j++){
+            //Skips checking for overlaps of a section with itself
+            if(unique[i]==unique[j]){
+                continue;
+            }
+            //Adjusts for div variable placement based on whether this unique time
+            //has multiple sections or just one
+            if(unique[j].daySections.length==1){
+                var div2 = unique[j].daySections[0].sectionDiv;
+            }
+            else{
+                var div2 = unique[j].div;
+            }
+            //Sets a base width denominator of 1 for this div, if one is not set
+            if(typeof unique[j].widthDenom == "undefined"){
+                unique[j].widthDenom = 1;
+            }
+            //Checks if div j overlaps with div i
+            //and if so adds j to the overlap array
+            if(rectOverlap(div, div2)){
+                overlaps.push({div: div2, unique: unique[j]});
+            }
+        }
+        //Adjusts width and left-offset of given div, based on widthDenom value
+        function adjustWidth(adjustDiv,unique){
+            unique.widthDenom++;
+            adjustDiv.style.width = (origWidth/unique.widthDenom).toString() + "px";
+            if(adjustDiv != div){
+                adjustDiv.style.left = parseFloat(adjustDiv.style.left)
+                + parseFloat(adjustDiv.style.width) + 1 + "px";
+            }
+        }
+        //Decreases width of overlapping sections and pushes them to the right
+        //until no overlaps remain (for this iteration of unique[i])
+        while(overlaps.length>0){
+            var temp = overlaps;
+            overlaps = [];
+            adjustWidth(div,unique[i]);
+            for(let j=0; j<temp.length; j++){
+                if(temp[j].unique.widthDenom<unique[i].widthDenom){
+                    adjustWidth(temp[j].div,temp[j].unique);
+                }
+                if(rectOverlap(div,temp[j].div)){
+                    overlaps.push(temp[j]);
+                }
+            }
+        }
+    }
 }
+
 
 function unshowPossible() {
     for(let i = 0; i<possibleSections.length; i++) {
