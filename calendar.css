@@ -20,18 +20,66 @@
     /* margin: 5px; */
 }         
 
-.classes { 
-    align-self:auto;
+.leftbar {
+    display: flex;
+    flex-direction: column;
     width: 250px;
     max-width: 250px;
-    padding: 5px;
 }
-
-.search { 
-    align-self:auto;
-    width: 250px;
-    max-width: 250px;
+.tabs {
     padding: 5px;
+    border-bottom: 1px solid rgb(222, 226, 230);
+    padding-bottom: 0px;
+}
+.tabs button {
+    margin-bottom: -1px;
+    border: 1px solid transparent;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+    border-top-color: rgb(212, 216, 220);
+    border-right-color: rgb(212, 216, 220);
+    /* border-bottom-color: rgb(255, 255, 255); */
+    border-left-color: rgb(212, 216, 220);
+    padding: 0.5rem 1rem;
+    padding-bottom: 0.35rem;
+    background: white;
+    color: #007bff;
+}
+.tabs .active {
+    color: black;
+    border-top-color: rgb(163 163 163);
+    border-right-color: rgb(163 163 163);
+    border-left-color: rgb(163 163 163);
+}
+.tabs .active:hover {
+    color: black;
+}
+.tabs button:hover {
+    color: #0056b3;
+}
+.leftbarcontent {
+    align-self:auto;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    height: 100%;
+}
+/* #classes { 
+    align-self:auto;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+#search { 
+    align-self:auto;
+    padding: 5px;
+    overflow-y: auto;
+    display: none;
+} */
+#search {
+    display: none;
 }
 #input{
     width: 95%;
@@ -45,10 +93,6 @@
     overflow-y: auto;
     margin-top: 5px;
     margin-bottom: 5px;
-}
-.classes {
-    display: flex;
-    flex-direction: column;
 }
 .classesbottom {
     margin-top: auto;
@@ -68,6 +112,7 @@
     position: absolute;
     z-index: 1;
     background-color: black;
+    color: white;
     padding: 5px;
     border-radius: 6px;
     top: -3px;
@@ -115,12 +160,12 @@
     align-self: auto;
     display: flex;
     flex-direction: column;
-    padding-top: 5px;
 }
 .caltop {
+    min-height: 25px;
     height: 25px;
     display: flex;
-    margin-bottom: 5px;
+    padding: 5px;
 }
 .saveloadsched {
     margin-left: auto;
@@ -130,10 +175,15 @@
     height: 23px;
 }
 #schedinput {
-    height: 17px;
+    height: 19px;
+    border: 1px solid #767676;
+    border-right: none;
 }
 #scheddropdown {
     display: none;
+}
+#scheddropdownbutton {
+    border: 1px solid #767676;
 }
 #savesched {
     margin-left: 5px;

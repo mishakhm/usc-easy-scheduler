@@ -8,21 +8,35 @@
 
     <body>  
         <div class="flex-container">
-             
-            <div class="classes">
-                Classes
-                <div class="classesContainer" id="myClassesContainer"></div>
-                <div class="classesbottom">
-                    <div class="tooltip">
-                        <button id="update">Refresh</button>
-                        <span class="tooltipright" style="width: 235px;">Refresh class info from USC servers</span>
-                    </div>
-                    <div id="last">Last: never</div>
+            <div class="leftbar">
+                <div class="tabs">
+                    <button id="classesbutton" class="active">
+                        My Classes
+                    </button>
+                    <button id="searchbutton">
+                        Search
+                    </button>
                 </div>
+                <div id="classes" class="leftbarcontent">
+                    <div class="classesContainer" id="myClassesContainer"></div>
+                    <div class="classesbottom">
+                        <div class="tooltip">
+                            <button id="update">Refresh</button>
+                            <span class="tooltipright" style="top: -15px; width: 150px;">Refresh class info from USC servers</span>
+                        </div>
+                        <div id="last">Last: never</div>
+                    </div>
+                </div>
+                <div id="search" class="leftbarcontent">
+                    <input type="text" id="input"placeholder="Search by department ex. CSCI">
+                    <div id="loading">Loading...</div>
+                    <div class="classesContainer" id="searchResultsContainer"></div>
+                </div>
+    
             </div>
+            
             <div class="calendar">
                 <div class="caltop">
-                    Calendar
                     <div class="saveloadsched">
                         <div class="dropdown">
                             <input type="text" id="schedinput" placeholder="Unsaved Schedule">
@@ -396,12 +410,7 @@
                     </div>
                 </div>
             </div>
-            <div class="search">
-                <input type="text" id="input"placeholder="Search by department ex. CSCI">
-                <div id="loading">Loading...</div>
-                <div class="classesContainer" id="searchResultsContainer"></div>
-            </div>
-
+            
           </div>
           <script src="core.js"></script>
     </body>

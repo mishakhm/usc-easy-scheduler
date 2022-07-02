@@ -1031,3 +1031,17 @@ document.getElementById("savesched").addEventListener('click', function (){
 document.getElementById("update").addEventListener('click', function (){
     updateInfo(term);
 })
+
+document.getElementById("searchbutton").addEventListener('click', function (e){
+    document.getElementById("search").style.display = "flex";
+    document.getElementById("classes").style.display = "none";
+    e.target.classList.add("active");
+    document.getElementById("classesbutton").classList.remove("active");
+})
+
+document.getElementById("classesbutton").addEventListener('click', function (e){
+    document.getElementById("classes").style.display = "flex";
+    document.getElementById("search").style.display = "none";
+    e.target.classList.add("active");
+    document.getElementById("searchbutton").classList.remove("active");
+})
