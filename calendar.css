@@ -1,6 +1,6 @@
 * {
     margin: 0;
-    /* font-size: 15px; */
+    font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,Liberation Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color emoji;
 }
 
 .flex-container {         
@@ -9,17 +9,7 @@
     background-color: #ffffff;
     height: 100vh;
     /*gap: 5px;*/
-}
-
-.flex-container > div{
-    /* background: #990000; */
-    /* border: 3px solid #7c0101; */
-    /* color: white; */
-    /* border-radius: 5px; */
-    /* padding: 5px; */
-    /* margin: 5px; */
-}         
-
+}      
 .leftbar {
     display: flex;
     flex-direction: column;
@@ -28,20 +18,16 @@
 }
 .tabs {
     padding: 5px;
-    border-bottom: 1px solid rgb(222, 226, 230);
+    border-bottom: 1px solid rgb(163 163 163);
     padding-bottom: 0px;
 }
 .tabs button {
     margin-bottom: -1px;
     border: 1px solid transparent;
+    border-bottom: 0px;
     border-top-left-radius: 0.25rem;
     border-top-right-radius: 0.25rem;
-    border-top-color: rgb(212, 216, 220);
-    border-right-color: rgb(212, 216, 220);
-    /* border-bottom-color: rgb(255, 255, 255); */
-    border-left-color: rgb(212, 216, 220);
-    padding: 0.5rem 1rem;
-    padding-bottom: 0.35rem;
+    padding: 0.35rem 0.8rem;
     background: white;
     color: #007bff;
 }
@@ -50,12 +36,20 @@
     border-top-color: rgb(163 163 163);
     border-right-color: rgb(163 163 163);
     border-left-color: rgb(163 163 163);
+    border-bottom: 1px solid transparent;
 }
 .tabs .active:hover {
     color: black;
+    border-top-color: rgb(163 163 163);
+    border-right-color: rgb(163 163 163);
+    border-left-color: rgb(163 163 163);
 }
 .tabs button:hover {
     color: #0056b3;
+    cursor: pointer;
+    border-top-color: rgb(222, 226, 230);
+    border-right-color: rgb(222, 226, 230);
+    border-left-color: rgb(222, 226, 230);
 }
 .leftbarcontent {
     align-self:auto;
@@ -65,19 +59,6 @@
     overflow-y: auto;
     height: 100%;
 }
-/* #classes { 
-    align-self:auto;
-    padding: 5px;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-}
-#search { 
-    align-self:auto;
-    padding: 5px;
-    overflow-y: auto;
-    display: none;
-} */
 #search {
     display: none;
 }
@@ -89,7 +70,6 @@
 }
 .classesContainer{
     max-height: 95%;
-    /* overflow-y: scroll; */
     overflow-y: auto;
     margin-top: 5px;
     margin-bottom: 5px;
@@ -205,9 +185,6 @@
 .scrollcalcontainer {
     display: flex;
     flex-direction: column;
-    /* height: 95%; */
-    /* This is not ideal for setting the height of the calendar section */
-    /* overflow-y: scroll; */
     overflow-y: auto;
 }
 #scrollcal {
@@ -225,6 +202,7 @@
     color: black;
     cursor: grab;
     font-size: 11px;
+    overflow-y: hidden;
 }
 .calsection button {
     position: absolute;
@@ -236,13 +214,17 @@
     height: 16px;
     line-height: 11px;
 }
+.calnumreg {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+}
 .calpossible {
     background: pink;
     opacity: 75%;
     text-align: center;
     border: 3px solid #fda6b4;
     padding: 1px;
-    line-height: 1.2em;
 }
 .calpossiblelist {
     position: absolute;
@@ -250,8 +232,6 @@
     background-color: black;
     padding: 5px;
     border-radius: 6px;
-    /* top: -3px; */
-    /* left: 105%; */
 }
 .calpossiblelist .calpossible {
     position: relative;
@@ -263,13 +243,12 @@
 .calpossible br {
     display: block;
     content: "";
-    margin-bottom: 1px;
+    margin-bottom: 2px;
 }
 .dragover {
     border: 3px dotted #666;
 }
 .tg  {
-    /*border-collapse:collapse;*/
     border-color: separate;
     border-spacing:0;
     width: 100%;
@@ -282,11 +261,11 @@
     top: 0;
     z-index: 1;
 }
-.thead .cal-time{
+.thead .cal-time {
     border-bottom-width: 0px;
 }
-.tg td{border-color:black;
-    /* border-style:solid; */
+.tg td {
+    border-color:black;
     border-right-style: solid;
     border-left-style: solid;
     border-top-style: solid;
@@ -294,34 +273,37 @@
     font-size:14px;
     overflow:hidden;
     padding:10px 5px;
-    word-break:normal;}
-.tg th{border-color:black;
+    word-break:normal;
+}
+.tg th {
+    border-color:black;
     border-style:solid;
     border-width:1px;
     font-size:14px;
     font-weight:normal;
     overflow:hidden;
     padding:10px 5px;
-    word-break:normal;}
-.tg .cal-weekend{
+    word-break:normal;
+}
+.tg .cal-weekend {
     background-color:#d3d3d3;
     text-align:left;
-    vertical-align:top;}
-.tg .cal-weekday{
+    vertical-align:top;
+}
+.tg .cal-weekday {
     background-color: white;
 }
-.tg .cal-day{
+.tg .cal-day {
     width:100px;
     text-align:left;
     vertical-align:top;
 }
-.tg .cal-time{
+.tg .cal-time {
     width: 50px;
     text-align:left;
     vertical-align:top;
     font-size:11px;
     border-top-style: solid;
-    /* border-bottom-style: solid; */
 }
 .tg .cal-00 {
     border-top-style: solid;

@@ -91,14 +91,14 @@ class Section {
         this.prefix = prefix;
         this.id = SectionData.id;
         this.instructor = SectionData.instructor;
-        this.proflist = "";
+        this.profList = "";
         if (typeof this.instructor != "undefined"){
             if(Array.isArray(this.instructor)){
                 for(let i = 0; i<this.instructor.length;i++){
-                    this.proflist += this.instructor[i].first_name + " "
+                    this.profList += this.instructor[i].first_name + " "
                     + this.instructor[i].last_name;
                     if(i != this.instructor.length-1){
-                        this.proflist += ", ";
+                        this.profList += ", ";
                     }
                 }
             }
@@ -243,13 +243,16 @@ class Section {
             var unschedButton = [];
             for(let i = 0; i<this.daySections.length; i++){
                 var sectionDiv = addElement("div", "calsection", cal,
-                this.code + ": (" + this.id + "), " + this.type);
+                this.code + ": (" + this.id + "), " + this.type + ". " + this.profList);
                 //Make the section draggable
                 sectionDiv.setAttribute("draggable",true);
                 sectionDiv.addEventListener("dragstart", this.calDragStart);
                 sectionDiv.addEventListener("dragend", this.calDragEnd);
-
+                //Add unscheduling button to calendar div
                 unschedButton.push(addElement("button", "", sectionDiv, "X"));
+                //Add number currently registered to calendar div
+                addElement("p", "calnumreg", sectionDiv, this.number_registered + "/"
+                + this.spaces_available)
 
                 this.daySections[i].sectionDiv = sectionDiv;
             }
@@ -972,6 +975,23 @@ monitorDevicePixelRatio();
 
 //Update calendar div positions on window resize
 window.addEventListener("resize", setAllSectionPositions);
+
+function setTablePadding(padding){
+    var cells = document.getElementsByTagName("td");
+    for(let i = 0; i<cells.length; i++){
+        cells[i].style.paddingTop = padding + "px";
+        cells[i].style.paddingBottom = padding + "px";
+    }
+}
+//Increase calendar height until it fills the height of the window
+var tablePadding = 10;
+var windowHeight = window.innerHeight;
+var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
+while(tableBottom.y<windowHeight){
+    tablePadding++;
+    setTablePadding(tablePadding);
+    var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
+}
 
 var calSections = [];
 chrome.storage.local.set({'term': "20223"});
