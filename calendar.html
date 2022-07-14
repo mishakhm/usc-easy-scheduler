@@ -3,6 +3,7 @@
     <head>
         <title>Calendar</title>
         <meta charset="UTF-8">
+        <link href="/assets/css/all.css" rel="stylesheet">
         <link rel="stylesheet" href="calendar.css">
     </head>
 
@@ -20,10 +21,7 @@
                 <div id="classes" class="leftbarcontent">
                     <div class="classesContainer" id="myClassesContainer"></div>
                     <div class="classesbottom">
-                        <div class="tooltip">
-                            <button id="update">Refresh</button>
-                            <span class="tooltipright" style="top: -15px; width: 150px;">Refresh class info from USC servers</span>
-                        </div>
+                        <i id="update" title="Refresh class info from USC servers" class="fa-solid fa-arrows-rotate"></i>
                         <div id="last">Last: never</div>
                     </div>
                 </div>
@@ -43,7 +41,7 @@
                             <div id="scheddropdown">
                             </div>
                         </div>
-                        <button id="scheddropdownbutton">\/</button>
+                        <button id="scheddropdownbutton" class="fa-solid fa-caret-down"></button>
                         <button id="savesched">Save schedule</button>
                     </div>
                 </div>

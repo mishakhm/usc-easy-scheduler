@@ -1,6 +1,7 @@
 * {
     margin: 0;
     font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,Liberation Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color emoji;
+    font-size: 14px;
 }
 
 .flex-container {         
@@ -13,13 +14,15 @@
 .leftbar {
     display: flex;
     flex-direction: column;
-    width: 250px;
-    max-width: 250px;
+    width: 300px;
+    max-width: 300px;
+    background: #efefef;
 }
 .tabs {
     padding: 5px;
     border-bottom: 1px solid rgb(163 163 163);
     padding-bottom: 0px;
+    background: white;
 }
 .tabs button {
     margin-bottom: -1px;
@@ -37,6 +40,7 @@
     border-right-color: rgb(163 163 163);
     border-left-color: rgb(163 163 163);
     border-bottom: 1px solid transparent;
+    background: #efefef;
 }
 .tabs .active:hover {
     color: black;
@@ -53,7 +57,9 @@
 }
 .leftbarcontent {
     align-self:auto;
-    padding: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -73,66 +79,84 @@
     overflow-y: auto;
     margin-top: 5px;
     margin-bottom: 5px;
+    padding-right: 5px;
 }
 .classesbottom {
     margin-top: auto;
     display: flex;
+    padding: 5px;
+}
+#update {
+    cursor: pointer;
+    margin-top: 4px;
 }
 #last {
-    padding: 3px;
+    margin-left: 5px;
 }
-.tooltip {
+.searchResult {
+    color: black;
+    width: 99%;
+    background: white;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+}
+.searchResultOuter {
+    cursor: pointer;
+    /* border-bottom: 1px solid gray; */
+    padding: 5px;
+    user-select: none;
     position: relative;
 }
-.tooltip:hover .tooltipright {
-    visibility: visible;
-}
-.tooltip .tooltipright {
-    visibility: hidden;
-    position: absolute;
-    z-index: 1;
-    background-color: black;
-    color: white;
-    padding: 5px;
-    border-radius: 6px;
-    top: -3px;
-    left: 102%;
-}
-.tooltip .tooltipright::after {
-    content: " ";
-    position: absolute;
-    top: 50%;
-    right: 100%; /* To the left of the tooltip */
-    margin-top: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: transparent black transparent transparent;
-  }
-.searchResult{
-    /* border: 1px solid black;
-    background-color: white; */
-    color: black;
-    margin-bottom: 5px;
-    /* padding: 1px; */
-    min-width: 97%;
-    width: 97%;
-    max-width: 97%;
-}
-.searchResultButton{
-    width: 100%;
-}
-.searchResultButton:hover{
+.searchResultOuter:hover {
     background-color: #eaeaea;
 }
-.displayCourseInfo{
+.searchResultTitle {
+    line-height: 1em;
+    margin-bottom: 5px;
+}
+.searchResultUnits {
+    font-size: 12px;
+}
+.dropIcon {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+}
+.extraInfo p{
+    font-style: italic;
+    font-size: 12px;
+}
+.searchResultTypeOuter {
+    padding: 3px;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+.searchResultType {
+    border: 1px solid gray;
+    margin-top: 3px;
+}
+.displayCourseInfo {
     display: none;
     background: white;
+    padding: 3px;
 }
-.searchSection{
+.searchSection {
     border: 1px solid grey;
     padding: 1px;
+    position: relative;
 }
-.sectionLabel{
+.searchSection .fa-solid {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    cursor: pointer;
+}
+.searchSection .fa-xmark {
+    right: 7px;
+    color: red;
+}
+.sectionLabel {
     font-weight: 500;
 }
 .calendar { 
@@ -161,6 +185,7 @@
 }
 #scheddropdown {
     display: none;
+    user-select: none;
 }
 #scheddropdownbutton {
     border: 1px solid #767676;
@@ -201,8 +226,11 @@
     background: #ffcc00;
     color: black;
     cursor: grab;
-    font-size: 11px;
+    font-size: 12px;
     overflow-y: hidden;
+}
+.calsection p {
+    font-size: inherit;
 }
 .calsection button {
     position: absolute;
@@ -210,9 +238,10 @@
     right: 3px;
     width: 14px;
     font-size: 11px;
-    padding: 1px;
-    height: 16px;
+    padding: 0px;
+    height: 14px;
     line-height: 11px;
+    -webkit-text-stroke: 0.1px #efefef;
 }
 .calnumreg {
     position: absolute;
@@ -269,40 +298,40 @@
     border-right-style: solid;
     border-left-style: solid;
     border-top-style: solid;
-    border-width:1px;
-    font-size:14px;
-    overflow:hidden;
-    padding:10px 5px;
-    word-break:normal;
+    border-width: 1px;
+    font-size: 14px;
+    overflow: hidden;
+    padding: 13px 5px;
+    word-break: normal;
 }
 .tg th {
-    border-color:black;
-    border-style:solid;
-    border-width:1px;
-    font-size:14px;
-    font-weight:normal;
-    overflow:hidden;
-    padding:10px 5px;
-    word-break:normal;
+    border-color: black;
+    border-style: solid;
+    border-width: 1px;
+    font-size: 14px;
+    font-weight: normal;
+    overflow: hidden;
+    padding: 10px 5px;
+    word-break: normal;
 }
 .tg .cal-weekend {
-    background-color:#d3d3d3;
-    text-align:left;
-    vertical-align:top;
+    background-color: #d3d3d3;
+    text-align: left;
+    vertical-align: top;
 }
 .tg .cal-weekday {
     background-color: white;
 }
 .tg .cal-day {
-    width:100px;
-    text-align:left;
-    vertical-align:top;
+    width: 100px;
+    text-align: left;
+    vertical-align: top;
 }
 .tg .cal-time {
     width: 50px;
-    text-align:left;
-    vertical-align:top;
-    font-size:11px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 11px;
     border-top-style: solid;
 }
 .tg .cal-00 {

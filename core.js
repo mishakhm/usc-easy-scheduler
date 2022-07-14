@@ -34,14 +34,15 @@ class Course {
         var displayCourse = document.createElement("div");
         displayCourse.className = "searchResult";
 
-        //Create button with outer info
+        //Create div with outer info
         var text = this.code;
         if (typeof this.suffix == "string"){
             text += " " + this.suffix;
         }
-        var button = addElement("button", "searchResultButton", displayCourse, "");
-        addElement("p", "", button, text + ": " + this.title);
-        addElement("p", "", button, "Units: " + this.units);
+        var outer = addElement("div", "searchResultOuter", displayCourse, "");
+        addElement("p", "searchResultTitle", outer, text + ": " + this.title);
+        addElement("p", "searchResultUnits", outer, "Units: " + this.units);
+        addElement("i", "dropIcon fa-solid fa-chevron-down", outer, "");
         
         //Add course info
         var displayCourseInfo = document.createElement("div");
@@ -56,21 +57,77 @@ class Course {
         }
         //Add pre-req and co-req info
         if (typeof this.prereq_text == "string"){
-            addElement("div", "", displayCourseInfo,
+            var extraInfo = addElement("div", "extraInfo", displayCourseInfo, "");
+            addElement("p", "", extraInfo,
             "Pre-reqs: " + this.prereq_text)}
         if (typeof this.coreq_text == "string"){
-            addElement("div", "", displayCourseInfo,
+            if (typeof extraInfo == "undefined"){
+                var extraInfo = addElement("div", "extraInfo",
+                displayCourseInfo, "");
+            }
+            addElement("p", "", extraInfo,
             "Co-reqs: " + this.coreq_text)}
         //Add all course sections to info
+        var sectionTypes = [];
         for(let j = 0; j<this.SectionData.length; j++){
-            this.SectionData[j].createHTML(displayCourseInfo, type);
+            //If this section type hasn't been encountered yet,
+            //create a div for it and add it to sectionTypes array 
+            if(sectionTypes.filter(e => e.type == this.SectionData[j].type)
+            .length==0){
+                var typeDiv = addElement("div", "searchResultType",
+                displayCourseInfo, "");
+
+                var typeDivOuter = addElement("div", "searchResultTypeOuter",
+                typeDiv, "");
+                //Add title to section type dropdown, including the number
+                //of sections fitting this type
+                addElement("p", "", typeDivOuter, this.SectionData[j].type + " (" + 
+                this.SectionData.filter(
+                    e => e.type == this.SectionData[j].type).length
+                    + ")")
+                if(this.SectionData[j].type.includes("Lec")){
+                    typeDiv.style.background = "#c8ffb8";
+                }
+                else if(this.SectionData[j].type.includes("Lab")){
+                    typeDiv.style.background = "#e0e0ff";
+                }
+                else if(this.SectionData[j].type.includes("Qz")){
+                    typeDiv.style.background = "#ffb7ff";
+                }
+
+                var typeDivContent = addElement("div",
+                "searchResultTypeContent", typeDiv, "");
+                typeDivContent.style.display = "none";
+
+                addElement("i", "dropIcon fa-solid fa-chevron-down", typeDivOuter, "");
+                //Add accordion dropdown functionality
+                typeDivOuter.addEventListener('click', accordion);
+
+                sectionTypes.push({
+                    type: this.SectionData[j].type,
+                    outerDiv: typeDivOuter,
+                    innerDiv: typeDivContent
+                });
+            }
+            //Create this section's div, and find and add it to the matching
+            //type div by filtering sectionTypes array
+            this.SectionData[j].createHTML(
+                sectionTypes.filter(e =>
+                    e.type == this.SectionData[j].type)[0].innerDiv, type);
         }
         displayCourse.appendChild(displayCourseInfo);
         //Add the whole course div to the results
         addTo.appendChild(displayCourse);
         //Add accordion dropdown functionality
-        button.addEventListener('click', function () {
-            toggleShow(this.nextElementSibling);})
+        outer.addEventListener('click', accordion);
+        outer.addEventListener('click', function () {
+            if (outer.style.borderBottom == ""){
+                outer.style.borderBottom = "1px dashed gray";
+            }
+            else {
+                outer.style.borderBottom = "";
+            }
+        });
     }
     //Adds the given class to myClasses if it is not already in it
     add(){
@@ -114,12 +171,22 @@ class Section {
         this.dclass_code = SectionData.dclass_code;
         this.number_registered = SectionData.number_registered;
         this.spaces_available = SectionData.spaces_available;
-        this.start_time = SectionData.start_time;
-        this.end_time = SectionData.end_time;
-        this.startMinutes = parseInt(SectionData.start_time.slice(-2));
-        this.startHours = parseInt(SectionData.start_time.slice(0, 2));
-        this.endMinutes = parseInt(SectionData.end_time.slice(-2));
-        this.endHours = parseInt(SectionData.end_time.slice(0, 2));
+        if(typeof SectionData.start_time == "string"){
+            this.start_time = SectionData.start_time;
+            this.startMinutes = parseInt(SectionData.start_time.slice(-2));
+            this.startHours = parseInt(SectionData.start_time.slice(0, 2));
+        }
+        else{
+            this.start_time = "TBA";
+        }
+        if(typeof SectionData.end_time == "string"){
+            this.end_time = SectionData.end_time;
+            this.endMinutes = parseInt(SectionData.end_time.slice(-2));
+            this.endHours = parseInt(SectionData.end_time.slice(0, 2));
+        }
+        else{
+            this.end_time = "TBA";
+        }
         this.day = SectionData.day;
         this.daySections = [];
         this.units = SectionData.units;
@@ -203,8 +270,8 @@ class Section {
 
         //Add "schedule section" button if this is called for myClasses
         if(type == "myClasses"){
-            var schedSectButton = addElement("button", "schedSect", sectionDiv,
-                "Schedule section");
+            var schedSectButton = addElement("i", "fa-solid fa-plus",
+            sectionDiv, "");
             schedSectButton.addEventListener('click', this.sched);
         }
         this.sectionDiv = sectionDiv;
@@ -242,14 +309,20 @@ class Section {
             var cal = document.getElementById("scrollcal");
             var unschedButton = [];
             for(let i = 0; i<this.daySections.length; i++){
+                var sectionDivText = this.code + ": (" + this.id + "), "
+                + this.type + ". " + this.profList;
                 var sectionDiv = addElement("div", "calsection", cal,
-                this.code + ": (" + this.id + "), " + this.type + ". " + this.profList);
+                sectionDivText);
+                //Adds hover text showing the section text (in case text is
+                //too long and gets cut off).
+                //Maybe adds unneccessary clutter?
+                sectionDiv.setAttribute("title", sectionDivText);
                 //Make the section draggable
                 sectionDiv.setAttribute("draggable",true);
                 sectionDiv.addEventListener("dragstart", this.calDragStart);
                 sectionDiv.addEventListener("dragend", this.calDragEnd);
                 //Add unscheduling button to calendar div
-                unschedButton.push(addElement("button", "", sectionDiv, "X"));
+                unschedButton.push(addElement("button", "fa-solid fa-xmark", sectionDiv, ""));
                 //Add number currently registered to calendar div
                 addElement("p", "calnumreg", sectionDiv, this.number_registered + "/"
                 + this.spaces_available)
@@ -264,8 +337,9 @@ class Section {
             //Position the newly created div on the calendar based on date/time
             this.position();
             //Change the "schedule section" button in myClasses to "unschedule section"
-            var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
-            schedSectButton.innerHTML = "Unschedule section";
+            var schedSectButton = this.sectionDiv.getElementsByClassName("fa-plus")[0];
+            schedSectButton.classList.toggle("fa-plus");
+            schedSectButton.classList.toggle("fa-xmark");
             // schedSectButton.style.color = "red";
             this.sectionDiv.style.background = "#d7ffd7";
             schedSectButton.removeEventListener('click', this.sched);
@@ -281,51 +355,17 @@ class Section {
     }
     //Properly positions the section's divs on calendar according to date/time
     position(){
-        // //Probably inefficient to get every element with this class name every single time
-        // var calDay = document.getElementsByClassName("cal-day");
-        // var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
-        // var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
-
-        // var timeOffset = ((this.startHours-5)*2+this.startMinutes/30)*7+7;
-
         for(let i = 0; i<this.daySections.length; i++){
             positionDaySection(this.daySections[i].sectionDiv, this.startHours,
                 this.startMinutes, this.endHours, this.endMinutes, this.daySections[i].day)
-        //     var dayOffset = 0;
-        //     if(this.daySections[i].day == "M"){
-        //         dayOffset += 1;}
-        //     else if(this.daySections[i].day == "T"){
-        //         dayOffset += 2;}
-        //     else if(this.daySections[i].day == "W"){
-        //         dayOffset += 3;}
-        //     else if(this.daySections[i].day == "H"){
-        //         dayOffset += 4;}
-        //     else if(this.daySections[i].day == "F"){
-        //         dayOffset += 5;}
-        //     var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
-
-        //     var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
-        //         +headerRect.height;
-        //     var height = cellRect.height/30
-        //         *((this.endHours-this.startHours)*60
-        //         +this.endMinutes-this.startMinutes);
-            
-        //     this.daySections[i].sectionDiv.style.top =
-        //         top.toString() + "px";
-        //     this.daySections[i].sectionDiv.style.height =
-        //         height.toString() + "px";
-
-        //     this.daySections[i].sectionDiv.style.left = 
-        //         (cellRect.x - timeRect.x).toString() + "px";
-        //     this.daySections[i].sectionDiv.style.width = 
-        //         (0.95*cellRect.width).toString() + "px";
         }
     }
     unschedule(){
         this.scheduled = false;
         //Change the "unschedule section" button in myClasses to "schedule section"
-        var schedSectButton = this.sectionDiv.getElementsByClassName("schedSect")[0];
-        schedSectButton.innerHTML = "Schedule section";
+        var schedSectButton = this.sectionDiv.getElementsByClassName("fa-solid")[0];
+        schedSectButton.classList.toggle("fa-plus");
+        schedSectButton.classList.toggle("fa-xmark");
         // schedSectButton.style.color = "black";
         this.sectionDiv.style.background = "white";
         schedSectButton.removeEventListener('click', this.unsched);
@@ -411,6 +451,16 @@ function toggleShow(element){
     if (element.style.display == "block"){
         element.style.display = "none";}
     else {element.style.display = "block";}
+}
+
+function accordion(){
+    //Toggle display of dropdown div
+    toggleShow(this.nextElementSibling);
+    //Toggle icon pointing up/down
+    this.getElementsByClassName("dropIcon")[0]
+    .classList.toggle("fa-chevron-down");
+    this.getElementsByClassName("dropIcon")[0]
+    .classList.toggle("fa-chevron-up");
 }
 
 //Returns the index if the given array contains a class matching the given code, or -1 if not
@@ -554,6 +604,8 @@ function positionDaySection(div, startHours, startMinutes, endHours, endMinutes,
         dayOffset += 4;}
     else if(day == "F"){
         dayOffset += 5;}
+    else if(day == "S"){
+        dayOffset += 6;}
     var cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
 
     var top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y
@@ -984,7 +1036,7 @@ function setTablePadding(padding){
     }
 }
 //Increase calendar height until it fills the height of the window
-var tablePadding = 10;
+var tablePadding = 11;
 var windowHeight = window.innerHeight;
 var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
 while(tableBottom.y<windowHeight){
@@ -992,6 +1044,9 @@ while(tableBottom.y<windowHeight){
     setTablePadding(tablePadding);
     var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
 }
+//Scrolls the calendar down a little so the user doesn't have to, since
+//the calendar starts at 5 AM but very few students have classes that early
+document.getElementsByClassName("cal-day")[21].scrollIntoView(true);
 
 var calSections = [];
 chrome.storage.local.set({'term': "20223"});
@@ -1033,12 +1088,8 @@ var button = document.getElementById("scheddropdownbutton");
 button.addEventListener('click', function () {
     toggleShow(document.getElementById("schedinput").nextElementSibling);
     //Toggles button appearance to either up or down arrow
-    if(button.innerHTML=="\\/"){
-        button.innerHTML = "/\\";
-    }
-    else{
-        button.innerHTML = "\\/"
-    }
+    button.classList.toggle("fa-caret-down");
+    button.classList.toggle("fa-caret-up");
 })
 
 //Add save schedule functionality to "save schedule" button
