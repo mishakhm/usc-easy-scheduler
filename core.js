@@ -1137,7 +1137,12 @@ chrome.storage.local.get(['term','classes','schedules',"lastRefresh"], data => {
     createScheduleList();
     showAllScheduled();
     // Show last time class info was refreshed
-    document.getElementById("last").innerHTML = "Last: " + lastRefresh;
+    if(typeof lastRefresh == "undefined"){
+        document.getElementById("last").innerHTML = "Last: never";
+    }
+    else{
+        document.getElementById("last").innerHTML = "Last: " + lastRefresh;
+    }
 });
 
 // Adds search listener to dept search box
