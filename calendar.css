@@ -102,13 +102,29 @@
 }
 .searchResultOuter {
     cursor: pointer;
-    /* border-bottom: 1px solid gray; */
     padding: 5px;
+    padding-right: 20px;
+    height: 49px;
     user-select: none;
     position: relative;
 }
 .searchResultOuter:hover {
     background-color: #eaeaea;
+}
+.searchResultOuter .fa-plus, .fa-check {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    cursor: pointer;
+}
+.searchResultOuter .fa-check {
+    color: green;
+}
+.searchResultOuter .fa-xmark {
+    position: absolute;
+    right: 7px;
+    top: 5px;
+    cursor: pointer;
 }
 .searchResultTitle {
     line-height: 1em;
@@ -116,6 +132,8 @@
 }
 .searchResultUnits {
     font-size: 12px;
+    position: absolute;
+    bottom: 5px;
 }
 .dropIcon {
     position: absolute;
@@ -132,17 +150,72 @@
     cursor: pointer;
     user-select: none;
 }
+
 .searchResultType {
     border: 1px solid gray;
     margin-top: 3px;
 }
+
+.searchResultType.typeLec {
+    background: #c8ffb8;
+}
+.searchSection.typeLec {
+    background: #e9ffe3;
+}
+.searchSection.typeLec p.sectionLabel {
+    color: green;
+}
+.searchSection.typeLec .fa-solid.fa-slash {
+    -webkit-text-stroke-color: #e9ffe3;
+}
+
+.searchResultType.typeLab {
+    background: #e0e0ff;
+}
+.searchSection.typeLab {
+    background: #f3f3ff;
+}
+.searchSection.typeLab p.sectionLabel {
+    color: #66f;
+}
+.searchSection.typeLab .fa-solid.fa-slash {
+    -webkit-text-stroke-color: #f3f3ff;
+}
+
+.searchResultType.typeQz {
+    background: #ffb7ff;
+}
+.searchSection.typeQz {
+    background: #ffe2ff;
+}
+.searchSection.typeQz p.sectionLabel {
+    color: #909;
+}
+.searchSection.typeQz .fa-solid.fa-slash {
+    -webkit-text-stroke-color: #ffe2ff;
+}
+
+.searchResultType.typeDis {
+    background: #ffe0cc;
+}
+.searchSection.typeDis {
+    background: #fff3eb;
+}
+.searchSection.typeDis p.sectionLabel {
+    color: #f60;
+}
+.searchSection.typeDis .fa-solid.fa-slash {
+    -webkit-text-stroke-color: #fff3eb;
+}
+
+
 .displayCourseInfo {
     display: none;
     background: white;
     padding: 3px;
 }
 .searchSection {
-    border: 1px solid grey;
+    border-top: 1px solid grey;
     padding: 1px;
     position: relative;
 }
@@ -151,6 +224,11 @@
     right: 5px;
     bottom: 5px;
     cursor: pointer;
+}
+.fa-solid.fa-slash {
+    right: -2px;
+    bottom: 1px;
+    -webkit-text-stroke-width: 0.3px;
 }
 .searchSection .fa-xmark {
     right: 7px;

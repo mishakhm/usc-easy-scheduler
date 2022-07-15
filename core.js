@@ -15,12 +15,12 @@ class Course {
         this.SectionData = [];
         if (Array.isArray(CourseData.SectionData)){
             for(let i = 0; i<CourseData.SectionData.length; i++){
-                //Find how many units the course is worth
-                //because only one section will have the number of units
+                // Find how many units the course is worth
+                // because only one section will have the number of units
                 if(parseFloat(CourseData.SectionData[i].units) > parseFloat(this.units)){
                     this.units = CourseData.SectionData[i].units;
                 }
-                //Grab all sections, as Section class objects
+                // Grab all sections, as Section class objects
                 this.SectionData.push(new Section(CourseData.SectionData[i], this.code, this.prefix));
                 this.SectionData[i].parent = this;
             }}
@@ -30,32 +30,64 @@ class Course {
             }
     }
     createHTML(addTo, type){
-        //Create div for all info for a single course
-        var displayCourse = document.createElement("div");
-        displayCourse.className = "searchResult";
+        // Create div for all info for a single course
+        this.classDiv = document.createElement("div");
+        this.classDiv.className = "searchResult";
 
-        //Create div with outer info
+        // Create div with outer info
         var text = this.code;
         if (typeof this.suffix == "string"){
             text += " " + this.suffix;
         }
-        var outer = addElement("div", "searchResultOuter", displayCourse, "");
+        var outer = addElement("div", "searchResultOuter", this.classDiv, "");
         addElement("p", "searchResultTitle", outer, text + ": " + this.title);
         addElement("p", "searchResultUnits", outer, "Units: " + this.units);
         addElement("i", "dropIcon fa-solid fa-chevron-down", outer, "");
         
-        //Add course info
+        // Add course info
         var displayCourseInfo = document.createElement("div");
         displayCourseInfo.className = "displayCourseInfo";
-        //"Add class" button if in search
+        // "Add class" icon if in search
         if (type == "search"){
-            var addClassButton = addElement("button", "addClass", displayCourseInfo,
-                "Add class to my list");
-            addClassButton.addEventListener('click', () =>
-                this.add()
-            );
+            var addClassButton = addElement("i", "fa-solid", outer,
+            "");
+            // If the class is already in myClasses, display the
+            // checkmark instead of the plus already
+            if(containsClass(classes, this.code)==-1){
+                addClassButton.classList.add("fa-plus");
+            }
+            else{
+                addClassButton.classList.add("fa-check");
+            }
+            addClassButton.addEventListener('click', (e) => {
+                // If class isn't added, add it. If it already has been
+                // and checkmark is displayed, remove it
+                if(addClassButton.classList.contains("fa-plus")){
+                    this.add();
+                }
+                else{
+                    // Find the matching course in classes array and remove it
+                    // (using remove.this() can cause unexpected behavior due
+                    // to the search result being its own object)
+                    classes[classes.findIndex(course =>
+                        course.code == this.code)].remove();
+                }
+                // Change between plus icon and checkmark
+                addClassButton.classList.toggle("fa-plus");
+                addClassButton.classList.toggle("fa-check");
+                e.stopPropagation();
+            });
         }
-        //Add pre-req and co-req info
+        // "Remove from my classes" button if in myClasses
+        else if (type == "myClasses") {
+            var removeClassButton = addElement("i", "fa-solid fa-xmark", outer,
+            "");
+            removeClassButton.addEventListener('click', (e) => {
+                this.remove();
+                e.stopPropagation();
+            });
+        }
+        // Add pre-req and co-req info
         if (typeof this.prereq_text == "string"){
             var extraInfo = addElement("div", "extraInfo", displayCourseInfo, "");
             addElement("p", "", extraInfo,
@@ -67,11 +99,28 @@ class Course {
             }
             addElement("p", "", extraInfo,
             "Co-reqs: " + this.coreq_text)}
-        //Add all course sections to info
+
+        // Add all course sections to info
         var sectionTypes = [];
+        // Adds CSS class to a div based on which type of section 
+        // it corresponds to
+        function addTypeClass (div, sectType){
+            if(sectType.includes("Lec")){
+                div.classList.add("typeLec");
+            }
+            else if(sectType.includes("Lab")){
+                div.classList.add("typeLab");
+            }
+            else if(sectType.includes("Qz")){
+                div.classList.add("typeQz");
+            }
+            else if(sectType.includes("Dis") && !sectType.includes("Lec")){
+                div.classList.add("typeDis");
+            }
+        }
         for(let j = 0; j<this.SectionData.length; j++){
-            //If this section type hasn't been encountered yet,
-            //create a div for it and add it to sectionTypes array 
+            // If this section type hasn't been encountered yet,
+            // create a div for it and add it to sectionTypes array 
             if(sectionTypes.filter(e => e.type == this.SectionData[j].type)
             .length==0){
                 var typeDiv = addElement("div", "searchResultType",
@@ -79,28 +128,21 @@ class Course {
 
                 var typeDivOuter = addElement("div", "searchResultTypeOuter",
                 typeDiv, "");
-                //Add title to section type dropdown, including the number
-                //of sections fitting this type
+                // Add title to section type dropdown, including the number
+                // of sections fitting this type
                 addElement("p", "", typeDivOuter, this.SectionData[j].type + " (" + 
                 this.SectionData.filter(
                     e => e.type == this.SectionData[j].type).length
-                    + ")")
-                if(this.SectionData[j].type.includes("Lec")){
-                    typeDiv.style.background = "#c8ffb8";
-                }
-                else if(this.SectionData[j].type.includes("Lab")){
-                    typeDiv.style.background = "#e0e0ff";
-                }
-                else if(this.SectionData[j].type.includes("Qz")){
-                    typeDiv.style.background = "#ffb7ff";
-                }
+                    + ")");
+                // Add CSS class to div based on which type it's for (to color)
+                addTypeClass(typeDiv, this.SectionData[j].type);
 
                 var typeDivContent = addElement("div",
                 "searchResultTypeContent", typeDiv, "");
                 typeDivContent.style.display = "none";
 
                 addElement("i", "dropIcon fa-solid fa-chevron-down", typeDivOuter, "");
-                //Add accordion dropdown functionality
+                // Add accordion dropdown functionality
                 typeDivOuter.addEventListener('click', accordion);
 
                 sectionTypes.push({
@@ -109,16 +151,18 @@ class Course {
                     innerDiv: typeDivContent
                 });
             }
-            //Create this section's div, and find and add it to the matching
-            //type div by filtering sectionTypes array
-            this.SectionData[j].createHTML(
+            // Create this section's div, and find and add it to the matching
+            // type div by filtering sectionTypes array
+            var sectionDiv = this.SectionData[j].createHTML(
                 sectionTypes.filter(e =>
                     e.type == this.SectionData[j].type)[0].innerDiv, type);
+            addTypeClass(sectionDiv, this.SectionData[j].type);
+            
         }
-        displayCourse.appendChild(displayCourseInfo);
-        //Add the whole course div to the results
-        addTo.appendChild(displayCourse);
-        //Add accordion dropdown functionality
+        this.classDiv.appendChild(displayCourseInfo);
+        // Add the whole course div to the results
+        addTo.appendChild(this.classDiv);
+        // Add accordion dropdown functionality
         outer.addEventListener('click', accordion);
         outer.addEventListener('click', function () {
             if (outer.style.borderBottom == ""){
@@ -129,16 +173,33 @@ class Course {
             }
         });
     }
-    //Adds the given class to myClasses if it is not already in it
+    // Adds the given class to myClasses if it is not already in it
     add(){
         if(containsClass(classes, this.code)==-1) {
             var index = classes.push(this);
-            //Save updated list of classes
-            //storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
+            // Save updated list of classes
+            // storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
             chrome.storage.local.set({'classes': classes});
-            //Add the HTML for the newly added class to myClasses div
+            // Add the HTML for the newly added class to myClasses div
             classes[index-1].createHTML(document.getElementById("myClassesContainer"), "myClasses");
+            // Cross out "add section button" for conflicting sections
+            crossOutConflicts();
         }
+    }
+    // Removes the given class from myClasses
+    remove(){
+        // Unschedules all scheduled sections of this class
+        for(let i=0; i<this.SectionData.length; i++){
+            if(this.SectionData[i].scheduled){
+                this.SectionData[i].unschedule();
+            }
+        }
+        // Removes this class HTML div from myClasses
+        this.classDiv.remove();
+        // Removes this class from classes array
+        classes.splice(classes.findIndex(e => e == this), 1);
+        // Save updated list of classes
+        chrome.storage.local.set({'classes': classes});
     }
 }
 
@@ -222,19 +283,10 @@ class Section {
         var sectionDiv = document.createElement("div");
         sectionDiv.className = "searchSection";
         
-        var label = addElement("p", "sectionLabel", sectionDiv, this.id + " "
+        addElement("p", "sectionLabel", sectionDiv, this.id + " "
         + this.dclass_code + ": " + this.type);
-        if(this.type.includes("Lec")){
-            label.style.color = "green";
-        }
-        else if(this.type.includes("Lab")){
-            label.style.color = "#66f";
-        }
-        else if(this.type.includes("Qz")){
-            label.style.color = "#909";
-        }
 
-        //Display days for which this section meets
+        // Display days for which this section meets
         if(typeof this.day == "string"){
             var dayText = this.parsedDay;
         }
@@ -243,7 +295,7 @@ class Section {
         addElement("p", "", sectionDiv, dayText + " "
         + this.start_time + "-" + this.end_time);
 
-        //Check if an instructor is listed, and either display their name or a message
+        // Check if an instructor is listed, and either display their name or a message
         if (typeof this.instructor != "undefined"){
             if(Array.isArray(this.instructor)){
                 for(let k = 0; k<this.instructor.length;k++){
@@ -257,7 +309,7 @@ class Section {
                 + ", " + this.instructor.first_name);}}
         else{addElement("p", "", sectionDiv, "No instructor listed");}
 
-        //Shows number of people registed for a section, and "closed" if full
+        // Shows number of people registed for a section, and "closed" if full
         if(this.number_registered == this.spaces_available){
             var numReg = addElement("p", "", sectionDiv, 
             this.number_registered + "/" + this.spaces_available + " Closed");
@@ -268,7 +320,7 @@ class Section {
             this.number_registered + "/" + this.spaces_available);
         }
 
-        //Add "schedule section" button if this is called for myClasses
+        // Add "schedule section" button if this is called for myClasses
         if(type == "myClasses"){
             var schedSectButton = addElement("i", "fa-solid fa-plus",
             sectionDiv, "");
@@ -276,9 +328,10 @@ class Section {
         }
         this.sectionDiv = sectionDiv;
         addTo.appendChild(sectionDiv);
+        return this.sectionDiv;
     }
-    //Checks if the section conflicts with any already scheduled ones
-    //If not, creates divs on the calendar for each day of the section
+    // Checks if the section conflicts with any already scheduled ones
+    // If not, creates divs on the calendar for each day of the section
     conflicts(){
         var start = this.startMinutes + this.startHours*60;
         var end = this.endMinutes + this.endHours*60;
@@ -313,17 +366,17 @@ class Section {
                 + this.type + ". " + this.profList;
                 var sectionDiv = addElement("div", "calsection", cal,
                 sectionDivText);
-                //Adds hover text showing the section text (in case text is
-                //too long and gets cut off).
-                //Maybe adds unneccessary clutter?
+                // Adds hover text showing the section text (in case text is
+                // too long and gets cut off).
+                // Maybe adds unneccessary clutter?
                 sectionDiv.setAttribute("title", sectionDivText);
-                //Make the section draggable
+                // Make the section draggable
                 sectionDiv.setAttribute("draggable",true);
                 sectionDiv.addEventListener("dragstart", this.calDragStart);
                 sectionDiv.addEventListener("dragend", this.calDragEnd);
-                //Add unscheduling button to calendar div
+                // Add unscheduling button to calendar div
                 unschedButton.push(addElement("button", "fa-solid fa-xmark", sectionDiv, ""));
-                //Add number currently registered to calendar div
+                // Add number currently registered to calendar div
                 addElement("p", "calnumreg", sectionDiv, this.number_registered + "/"
                 + this.spaces_available)
 
@@ -334,26 +387,25 @@ class Section {
                     this.unschedule()
                 );
             }
-            //Position the newly created div on the calendar based on date/time
+            // Position the newly created div on the calendar based on date/time
             this.position();
-            //Change the "schedule section" button in myClasses to "unschedule section"
+            // Change the "schedule section" button in myClasses to "unschedule section"
             var schedSectButton = this.sectionDiv.getElementsByClassName("fa-plus")[0];
             schedSectButton.classList.toggle("fa-plus");
             schedSectButton.classList.toggle("fa-xmark");
-            // schedSectButton.style.color = "red";
-            this.sectionDiv.style.background = "#d7ffd7";
+            
             schedSectButton.removeEventListener('click', this.sched);
             schedSectButton.addEventListener('click', this.unsched);
-            //Add the section to the array of currently scheduled sections
-            calSections.push(this);//Push a reference?
-            //Save myClasses because this.scheduled has changed
+            // Add the section to the array of currently scheduled sections
+            calSections.push(this);// Push a reference?
+            // Save myClasses because this.scheduled has changed
             chrome.storage.local.set({'classes': classes});
             colorClasses();
-            colorConflicts();
+            crossOutConflicts();
             return true;
         }
     }
-    //Properly positions the section's divs on calendar according to date/time
+    // Properly positions the section's divs on calendar according to date/time
     position(){
         for(let i = 0; i<this.daySections.length; i++){
             positionDaySection(this.daySections[i].sectionDiv, this.startHours,
@@ -362,26 +414,25 @@ class Section {
     }
     unschedule(){
         this.scheduled = false;
-        //Change the "unschedule section" button in myClasses to "schedule section"
+        // Change the "unschedule section" button in myClasses to "schedule section"
         var schedSectButton = this.sectionDiv.getElementsByClassName("fa-solid")[0];
         schedSectButton.classList.toggle("fa-plus");
         schedSectButton.classList.toggle("fa-xmark");
-        // schedSectButton.style.color = "black";
-        this.sectionDiv.style.background = "white";
+        
         schedSectButton.removeEventListener('click', this.unsched);
         schedSectButton.addEventListener('click', this.sched);
-        //Should be updated when calSections[] functionality is updated
+        // Should be updated when calSections[] functionality is updated
         var index = calSections.indexOf(this)
-        //Remove the html div for the section from the calendar
+        // Remove the html div for the section from the calendar
         for(let j = 0; j<calSections[index].daySections.length; j++){
             calSections[index].daySections[j].sectionDiv.remove();
         }
-        //Remove the section from the array of scheduled sections
+        // Remove the section from the array of scheduled sections
         calSections.splice(index, 1);
-        //Save myClasses because this.scheduled has changed
+        // Save myClasses because this.scheduled has changed
         chrome.storage.local.set({'classes': classes});
         colorClasses();
-        colorConflicts();
+        crossOutConflicts();
     }
 }
 
@@ -401,7 +452,7 @@ function searchDept(dept,term){
     .then(data => showSearchedCourses(data.OfferedCourses.course, dept));
 }
 
-//Searches for a class matching given dept and code, then adds it to myClasses
+// Searches for a class matching given dept and code, then adds it to myClasses
 async function searchAddClass(dept,term,code){
     var url = "https://web-app.usc.edu/web/soc/api/classes/"
     + encodeURIComponent(dept) + "/" + encodeURIComponent(term);
@@ -419,23 +470,23 @@ async function searchAddClass(dept,term,code){
 }
 
 function showSearchedCourses(searchedCourseList, dept){
-    console.log(searchedCourseList); //For testing
+    console.log(searchedCourseList); // For testing
 
-    //Clear search results
+    // Clear search results
     document.getElementById("searchResultsContainer").innerHTML = "";
 
     for(let i = 0; i<searchedCourseList.length; i++){
-        //Check that the course actually belongs in this search
-        //(because USC's API will return all courses connected to a department,
-        //even if they don't match the prefix
-        //i.e. QBIO-401 will show up when searching for BISC courses
-        //Webreg's own search only shows courses that match the prefix exactly)
+        // Check that the course actually belongs in this search
+        // (because USC's API will return all courses connected to a department,
+        // even if they don't match the prefix
+        // i.e. QBIO-401 will show up when searching for BISC courses
+        // Webreg's own search only shows courses that match the prefix exactly)
         if(searchedCourseList[i].CourseData.prefix == dept){
             new Course(searchedCourseList[i].CourseData).createHTML(
                 document.getElementById("searchResultsContainer"), "search")
         }
     }
-    //Hide loading indicator now that search has successfully completed
+    // Hide loading indicator now that search has successfully completed
     document.getElementById("loading").style.display = "none";
 }
 
@@ -454,16 +505,16 @@ function toggleShow(element){
 }
 
 function accordion(){
-    //Toggle display of dropdown div
+    // Toggle display of dropdown div
     toggleShow(this.nextElementSibling);
-    //Toggle icon pointing up/down
+    // Toggle icon pointing up/down
     this.getElementsByClassName("dropIcon")[0]
     .classList.toggle("fa-chevron-down");
     this.getElementsByClassName("dropIcon")[0]
     .classList.toggle("fa-chevron-up");
 }
 
-//Returns the index if the given array contains a class matching the given code, or -1 if not
+// Returns the index if the given array contains a class matching the given code, or -1 if not
 function containsClass(arr, code){
     for(let i=0; i<arr.length; i++){
         if(arr[i].code == code){
@@ -473,7 +524,7 @@ function containsClass(arr, code){
     return -1;
 }
 
-//Clears all classes from the "my classes" section
+// Clears all classes from the "my classes" section
 function clearClasses(){
     unscheduleAll();
     classes = [];
@@ -481,9 +532,9 @@ function clearClasses(){
     showMyClasses();
 }
 
-//Displays all saved classes in the "my classes" div of the webpage
+// Displays all saved classes in the "my classes" div of the webpage
 function showMyClasses(){
-    //Clear classes div
+    // Clear classes div
     document.getElementById("myClassesContainer").innerHTML = "";
     for(let i=0; i<classes.length; i++){
         classes[i].createHTML(document.getElementById("myClassesContainer"), "myClasses");
@@ -505,48 +556,48 @@ function saveSchedule(name){
         section.id = calSections[i].id;
         sections.push(section);
     }
-    //If there already exists a schedule with that name, overwrite it
+    // If there already exists a schedule with that name, overwrite it
     for(let i=0;i<schedules.length;i++){
         if(schedules[i].name==name){
             if(confirm("A saved schedule with that name already exists, overwrite it?")){
                 schedules[i].sections = sections;
                 chrome.storage.local.set({'schedules': schedules});
-                //Displays name of saved schedule in dropdown bar
+                // Displays name of saved schedule in dropdown bar
                 document.getElementById("schedinput").value = name;
             }
                 return;
         }
     }
-    //If a schedule with that name doesn't exist, this will be reached
-    //and the new schedule will be pushed
+    // If a schedule with that name doesn't exist, this will be reached
+    // and the new schedule will be pushed
     schedules.push({name: name, sections: sections});
     chrome.storage.local.set({'schedules': schedules});
-    //Update schedule list dropdown
+    // Update schedule list dropdown
     createScheduleList();
 }
 
-//Unschedules current schedule and loads the given
-//schedule[] where each element has {prefix, code, id}
+// Unschedules current schedule and loads the given
+// schedule[] where each element has {prefix, code, id}
 function loadSchedule(schedule){
     unscheduleAll();
-    //Iterate through each section in the schedule
+    // Iterate through each section in the schedule
     for(let i=0; i<schedule.sections.length; i++){
         var index = containsClass(classes, schedule.sections[i].code);
-        //If the class in the schedule is already in myClasses
+        // If the class in the schedule is already in myClasses
         if(index!=-1){
-            //Find the matching section id and schedule it
+            // Find the matching section id and schedule it
             for(let j=0;j<classes[index].SectionData.length;j++){
                 if(classes[index].SectionData[j].id==schedule.sections[i].id){
                     classes[index].SectionData[j].schedule();
                 }
             }
         }
-        //If not, add the class to myclasses and schedule it
+        // If not, add the class to myclasses and schedule it
         else{
-            //Add class to myclasses
+            // Add class to myclasses
             searchAddClass(schedule.sections[i].prefix, term, schedule.sections[i].code)
             .then(function() {
-            //Find the matching section id and schedule it
+            // Find the matching section id and schedule it
             for(let j=0;j<classes[classes.length-1].SectionData.length;j++){
                 if(classes[classes.length-1].SectionData[j].id==schedule.sections[i].id){
                     classes[classes.length-1].SectionData[j].schedule();
@@ -554,11 +605,11 @@ function loadSchedule(schedule){
             }})
         }
     }
-    //Displays name of loaded schedule in dropdown bar
+    // Displays name of loaded schedule in dropdown bar
     document.getElementById("schedinput").value = schedule.name;
 }
 
-//Adds listings for each saved schedule to dropdown
+// Adds listings for each saved schedule to dropdown
 function createScheduleList(){
     var dropdown = document.getElementById("scheddropdown");
     dropdown.innerHTML = "";
@@ -587,7 +638,7 @@ function setAllSectionPositions(){
 }
 
 function positionDaySection(div, startHours, startMinutes, endHours, endMinutes, day){
-    //Probably inefficient to get every element with this class name every single time
+    // Probably inefficient to get every element with this class name every single time
     var calDay = document.getElementsByClassName("cal-day");
     var timeRect = document.getElementsByClassName("cal-time")[1].getBoundingClientRect();
     var headerRect = document.getElementsByClassName("thead")[0].getBoundingClientRect();
@@ -629,11 +680,11 @@ function findCalSectionByID(id){
     }
 }
 
-//For section being dragged
+// For section being dragged
 function calDragStart(course, type, current, event) {
     setTimeout(function(){
         showPossiblePositions(course, type, current);
-        //Make the section being dragged translucent
+        // Make the section being dragged translucent
         for(let i=0;i<current.daySections.length;i++){
             current.daySections[i].sectionDiv.style.opacity = "0.5";
         }
@@ -647,12 +698,12 @@ function calDragStart(course, type, current, event) {
 }
 function calDragEnd(current) {
     unshowPossible();
-    //Make the section being dragged non-translucent again
+    // Make the section being dragged non-translucent again
     for (let i = 0; i < current.daySections.length; i++) {
         current.daySections[i].sectionDiv.style.opacity = "1";
     }
 }
-//For possible sections
+// For possible sections
 function calDragEnter(section) {
     for(let i=0;i<section.daySections.length;i++){
         section.daySections[i].sectionDiv.classList.add("dragover");
@@ -666,8 +717,8 @@ function calDragLeave(section) {
 function calDrop(orig, event) {
     var dropSection = findCalSectionByID(event.dataTransfer.getData("text/plain"));
     dropSection.unschedule();
-    //If the new section fails to schedule (because of a conflict), reschedule
-    //the original so everything remains as before
+    // If the new section fails to schedule (because of a conflict), reschedule
+    // the original so everything remains as before
     if(!orig.schedule()){
         dropSection.schedule();
     }
@@ -690,7 +741,7 @@ function calMultipleDragLeave(list){
     list.remove();
 }
 
-//Generate a calpossible div for given daySection
+// Generate a calpossible div for given daySection
 function calPossible(daySection, addTo){
     var div = addElement("div", "calsection calpossible",
     addTo, daySection.parent.number_registered + "/"
@@ -727,7 +778,7 @@ function timeDayMatch(e, compare, index) {
         && e.day == compare.daySections[index].day;
 }
 
-//Check if two DOM elements are overlapping using axis-aligned bounding boxes
+// Check if two DOM elements are overlapping using axis-aligned bounding boxes
 function rectOverlap(e, compare) {
     var rect = e.getBoundingClientRect();
     var compRect = compare.getBoundingClientRect();
@@ -740,23 +791,23 @@ function rectOverlap(e, compare) {
 var possibleSections = [];
 var unique = [];
 function showPossiblePositions(course, type, current){
-    //Create array of all sections of given type for the given class
+    // Create array of all sections of given type for the given class
     for(let i=0;i<course.SectionData.length;i++){
         if(course.SectionData[i].type === type && course.SectionData[i] !== current){
             possibleSections.push(new Section (course.SectionData[i]));
-            //Add pointer to the original section in myClasses
+            // Add pointer to the original section in myClasses
             possibleSections[possibleSections.length-1].orig = course.SectionData[i];
         }
     }
-    //Create a list of unique start time/end time/day combinations
-    //and all corresponding daySections
+    // Create a list of unique start time/end time/day combinations
+    // and all corresponding daySections
     for(let i=0;i<possibleSections.length;i++){
         for(let j=0;j<possibleSections[i].daySections.length;j++){
-            //Add pointer to each daySection's overall section
+            // Add pointer to each daySection's overall section
             possibleSections[i].daySections[j].parent = possibleSections[i];
 
-            //Check if this start/end/day combination is already in the
-            //unique array, and if not, add it along w/ the current daySection
+            // Check if this start/end/day combination is already in the
+            // unique array, and if not, add it along w/ the current daySection
             if(unique.filter(e => timeDayMatch(e, possibleSections[i], j)).length==0){
                 unique.push({
                     start_time: possibleSections[i].start_time,
@@ -765,8 +816,8 @@ function showPossiblePositions(course, type, current){
                     daySections: [possibleSections[i].daySections[j]]
                 })
             }
-            //If this start/end/day combination already exists in the
-            //unique array, add this daySection to that existing entry
+            // If this start/end/day combination already exists in the
+            // unique array, add this daySection to that existing entry
             else {
                 unique[unique.findIndex(e => timeDayMatch(e, possibleSections[i], j))].daySections.push(
                     possibleSections[i].daySections[j]
@@ -794,7 +845,7 @@ function showPossiblePositions(course, type, current){
             unique[i].div.addEventListener(
             "dragenter", function(event){
                 event.preventDefault();
-                //Create list div only if it doesn't already exist
+                // Create list div only if it doesn't already exist
                 if(typeof unique[i].list == "undefined"){
                     unique[i].list = calMultipleDragEnter(unique[i].outerdiv, unique[i].div, unique[i].daySections);
                 }
@@ -807,8 +858,8 @@ function showPossiblePositions(course, type, current){
             "dragleave", function(e){
                 var divRect = unique[i].div.getBoundingClientRect();
                 var listRect = unique[i].list.getBoundingClientRect();
-                //Check that the cursor is outside both the list and the
-                //calpossible div, and only then remove the list div
+                // Check that the cursor is outside both the list and the
+                // calpossible div, and only then remove the list div
                 if ((e.clientY < listRect.top ||
                     e.clientY >= listRect.bottom ||
                     e.clientX < listRect.left ||
@@ -828,48 +879,48 @@ function showPossiblePositions(course, type, current){
                 unique[i].daySections[0].day);
         }
     }
-    //If sections overlap but not perfectly, scales down their width
-    //to fit them usably side by side
+    // If sections overlap but not perfectly, scales down their width
+    // to fit them usably side by side
     for(let i=0; i<unique.length; i++){
-        //Holds all divs that overlap with unique[i]
+        // Holds all divs that overlap with unique[i]
         var overlaps = [];
-        //Adjusts for div variable placement based on whether this unique time
-        //has multiple sections or just one
+        // Adjusts for div variable placement based on whether this unique time
+        // has multiple sections or just one
         if(unique[i].daySections.length==1){
             var div = unique[i].daySections[0].sectionDiv;
         }
         else{
             var div = unique[i].div;
         }
-        //Sets a base width denominator of 1 for this div, if one is not set
+        // Sets a base width denominator of 1 for this div, if one is not set
         if(typeof unique[i].widthDenom == "undefined"){
             unique[i].widthDenom = 1;
         }
         var origWidth = parseFloat(div.style.width);
         for(let j=0; j<unique.length; j++){
-            //Skips checking for overlaps of a section with itself
+            // Skips checking for overlaps of a section with itself
             if(unique[i]==unique[j]){
                 continue;
             }
-            //Adjusts for div variable placement based on whether this unique time
-            //has multiple sections or just one
+            // Adjusts for div variable placement based on whether this unique time
+            // has multiple sections or just one
             if(unique[j].daySections.length==1){
                 var div2 = unique[j].daySections[0].sectionDiv;
             }
             else{
                 var div2 = unique[j].div;
             }
-            //Sets a base width denominator of 1 for this div, if one is not set
+            // Sets a base width denominator of 1 for this div, if one is not set
             if(typeof unique[j].widthDenom == "undefined"){
                 unique[j].widthDenom = 1;
             }
-            //Checks if div j overlaps with div i
-            //and if so adds j to the overlap array
+            // Checks if div j overlaps with div i
+            // and if so adds j to the overlap array
             if(rectOverlap(div, div2)){
                 overlaps.push({div: div2, unique: unique[j]});
             }
         }
-        //Adjusts width and left-offset of given div, based on widthDenom value
+        // Adjusts width and left-offset of given div, based on widthDenom value
         function adjustWidth(adjustDiv,unique){
             unique.widthDenom++;
             adjustDiv.style.width = (origWidth/unique.widthDenom).toString() + "px";
@@ -878,8 +929,8 @@ function showPossiblePositions(course, type, current){
                 + parseFloat(adjustDiv.style.width) + 1 + "px";
             }
         }
-        //Decreases width of overlapping sections and pushes them to the right
-        //until no overlaps remain (for this iteration of unique[i])
+        // Decreases width of overlapping sections and pushes them to the right
+        // until no overlaps remain (for this iteration of unique[i])
         while(overlaps.length>0){
             var temp = overlaps;
             overlaps = [];
@@ -914,17 +965,17 @@ function unshowPossible() {
     unique = [];
 }
 
-//Color each distinct class (not section) on the calendar a different color
+// Color each distinct class (not section) on the calendar a different color
 function colorClasses(){
     const colors = ["#fcd444","#fc4444","#029658","#2f64c1","#b178aa","#fc6404","#f978aa","#8cc43c","#5bc0de","#1abc9c"];
-    //Finds how many distinct classes are scheduled
+    // Finds how many distinct classes are scheduled
     schedClasses = [];
     for(let x = 0; x<calSections.length; x++){
         if(!schedClasses.includes(calSections[x].code)){
             schedClasses.push(calSections[x].code);
         }
     }
-    //Goes through the scheduled sections and colors them by class
+    // Goes through the scheduled sections and colors them by class
     for(let x = 0; x<calSections.length; x++){
         var index = schedClasses.findIndex(element => element==calSections[x].code);
         for(let n = 0; n<calSections[x].daySections.length; n++){
@@ -933,31 +984,46 @@ function colorClasses(){
     }
 }
 
-function colorConflicts(){
+function crossOutConflicts(){
     for(let i=0;i<classes.length;i++){
         for(let j=0;j<classes[i].SectionData.length;j++){
             if(classes[i].SectionData[j].scheduled==false){
+                var slashIconArr = classes[i].SectionData[j].sectionDiv
+                .getElementsByClassName("fa-slash");
                 if(classes[i].SectionData[j].conflicts().length>0){
-                    classes[i].SectionData[j].sectionDiv.style.background = "pink";
+                    // Adds a slash to visually cross out the add section icon
+                    // if the section conflicts with a scheduled section
+                    // (and such a slash hasn't already been added)
+                    if(slashIconArr.length==0){
+                            var slash = addElement("i", "fa-solid fa-slash",
+                            classes[i].SectionData[j].sectionDiv
+                            .getElementsByClassName("fa-plus")[0], "");
+        
+                            slash.setAttribute("title",
+                            "This section conflicts with an already scheduled section"
+                            );
+                        }
                 }
                 else{
-                    classes[i].SectionData[j].sectionDiv.style.background = "white";
+                    if(slashIconArr.length>0){
+                        slashIconArr[0].remove();
+                    }
                 }
             }
         }
     }
 }
 
-//Gets new info from USC servers and updates info for each class in myClasses
+// Gets new info from USC servers and updates info for each class in myClasses
 function updateInfo(term){
-    //Find all needed departments to update classes from
+    // Find all needed departments to update classes from
     var depts = [];
     for(let i=0;i<classes.length;i++){
         if(!depts.includes(classes[i].prefix)){
             depts.push(classes[i].prefix);
         }
     }
-    //Pull info for each department, and update relevant classes in myClasses
+    // Pull info for each department, and update relevant classes in myClasses
     (async function (){
         for(let i=0;i<depts.length;i++){
             var url = "https://web-app.usc.edu/web/soc/api/classes/"
@@ -965,20 +1031,20 @@ function updateInfo(term){
             fetch(url)
             .then(response => response.json())
             .then(data => {
-                //Iterate through all classes in myClasses
+                // Iterate through all classes in myClasses
                 for(let j=0;j<classes.length;j++){
-                    //Proceed if the current class is in this searched department
+                    // Proceed if the current class is in this searched department
                     if(classes[j].prefix==depts[i]){
-                        //Iterate through all the classes returned by search
-                        //and check if they are the same class as the current
-                        //class from myClass to be updated
+                        // Iterate through all the classes returned by search
+                        // and check if they are the same class as the current
+                        // class from myClass to be updated
                         for(let k=0;k<data.OfferedCourses.course.length;k++){
                             var currentCourse = new Course(
                                 data.OfferedCourses.course[k].CourseData);
                             if(classes[j].code == currentCourse.code){
-                                //Once class match is found, iterate through
-                                //each section and update it with the
-                                //corresponding section from search
+                                // Once class match is found, iterate through
+                                // each section and update it with the
+                                // corresponding section from search
                                 for(let l=0;l<classes[j].SectionData.length;l++){
                                     var matches = currentCourse.SectionData.filter(
                                         e => e.id === classes[j].SectionData[l].id);
@@ -988,7 +1054,7 @@ function updateInfo(term){
                                         classes[j].SectionData[l].scheduled = scheduled;
                                     }
                                     else{
-                                        //TO-DO: Expand error catching for this
+                                        // TO-DO: Expand error catching for this
                                         alert("Error updating class info");
                                     }
                                 }
@@ -996,9 +1062,9 @@ function updateInfo(term){
                         }
                     }
                 }
-                //Once all classes/departments have been done,
-                //save the updated info
-                //and reload the page so HTML can be regenerated
+                // Once all classes/departments have been done,
+                // save the updated info
+                // and reload the page so HTML can be regenerated
                 if(i==depts.length-1){
                     chrome.storage.local.set({'classes': classes});
                     lastRefresh = new Date();
@@ -1014,7 +1080,7 @@ function updateInfo(term){
     })();
 }
 
-//Listen for changes in webpage zoom, update calendar div positions if needed
+// Listen for changes in webpage zoom, update calendar div positions if needed
 function monitorDevicePixelRatio() {
     function onPixelRatioChange() {
         setAllSectionPositions();
@@ -1025,7 +1091,7 @@ function monitorDevicePixelRatio() {
 }
 monitorDevicePixelRatio();
 
-//Update calendar div positions on window resize
+// Update calendar div positions on window resize
 window.addEventListener("resize", setAllSectionPositions);
 
 function setTablePadding(padding){
@@ -1035,7 +1101,7 @@ function setTablePadding(padding){
         cells[i].style.paddingBottom = padding + "px";
     }
 }
-//Increase calendar height until it fills the height of the window
+// Increase calendar height until it fills the height of the window
 var tablePadding = 11;
 var windowHeight = window.innerHeight;
 var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
@@ -1044,8 +1110,8 @@ while(tableBottom.y<windowHeight){
     setTablePadding(tablePadding);
     var tableBottom = document.getElementsByClassName("cal-day")[258].getBoundingClientRect();
 }
-//Scrolls the calendar down a little so the user doesn't have to, since
-//the calendar starts at 5 AM but very few students have classes that early
+// Scrolls the calendar down a little so the user doesn't have to, since
+// the calendar starts at 5 AM but very few students have classes that early
 document.getElementsByClassName("cal-day")[21].scrollIntoView(true);
 
 var calSections = [];
@@ -1070,11 +1136,11 @@ chrome.storage.local.get(['term','classes','schedules',"lastRefresh"], data => {
     showMyClasses();
     createScheduleList();
     showAllScheduled();
-    //Show last time class info was refreshed
+    // Show last time class info was refreshed
     document.getElementById("last").innerHTML = "Last: " + lastRefresh;
 });
 
-//Adds search listener to dept search box
+// Adds search listener to dept search box
 var input = document.getElementById("input");
 input.addEventListener("keypress", function(event) {
     if (event.key === "Enter") {
@@ -1083,22 +1149,22 @@ input.addEventListener("keypress", function(event) {
     }
 });
 
-//Makes it so that clicking the schedules dropdown button shows/hides dropdown
+// Makes it so that clicking the schedules dropdown button shows/hides dropdown
 var button = document.getElementById("scheddropdownbutton");
 button.addEventListener('click', function () {
     toggleShow(document.getElementById("schedinput").nextElementSibling);
-    //Toggles button appearance to either up or down arrow
+    // Toggles button appearance to either up or down arrow
     button.classList.toggle("fa-caret-down");
     button.classList.toggle("fa-caret-up");
 })
 
-//Add save schedule functionality to "save schedule" button
-//Takes the name of the new schedule from dropdown input box
+// Add save schedule functionality to "save schedule" button
+// Takes the name of the new schedule from dropdown input box
 document.getElementById("savesched").addEventListener('click', function (){
     saveSchedule(document.getElementById("schedinput").value);
 })
 
-//Add update class info functionality to relevant button click
+// Add update class info functionality to relevant button click
 document.getElementById("update").addEventListener('click', function (){
     updateInfo(term);
 })
