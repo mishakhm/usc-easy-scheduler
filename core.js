@@ -543,10 +543,7 @@ class Section {
         displayOrder.unshift(
             displayOrder.splice(displayOrder.indexOf(this), 1)[0]);
         // Move the div in the interface up to the top of the list
-        if(typeof displayOrder[1] == "object"){
-            this.sectionDiv.parentNode.insertBefore(
-                this.sectionDiv, displayOrder[1].sectionDiv);
-        }
+        this.insertAnimated("before", displayOrder[1]);
         this.pinned = true;
         // Change the pin button color
         var pinButton = this.sectionDiv.getElementsByClassName("fa-thumbtack")[0];
@@ -558,7 +555,7 @@ class Section {
         let displayOrder = this.parent.sectionTypes.filter(e =>
             e.type == this.type)[0].displayOrder;
         // Find the index at which the sections are no longer pinned
-        let index;
+        let index = displayOrder.length;
         for(let i = 0; i<displayOrder.length; i++){
             if(displayOrder[i].pinned == false){
                 index = i;
@@ -567,9 +564,13 @@ class Section {
         }
         // Move the div in the interface to the correct location
         // below the pinned area
-        if(typeof displayOrder[index] == "object"){
-            this.sectionDiv.parentNode.insertBefore(
-                this.sectionDiv, displayOrder[index].sectionDiv);
+            // If every section is pinned, an index will never be found
+            // and there is no div to insert before
+        if(index == displayOrder.length){
+            this.insertAnimated("after");
+        }
+        else{
+            this.insertAnimated("before", displayOrder[index]);
         }
         // Remove this section from the displayOrder
         // and add it at the previously found index
@@ -581,6 +582,27 @@ class Section {
         pinButton.classList.toggle("active");
         // Save myClasses
         chrome.storage.local.set({'classes': classes});
+    }
+    async insertAnimated(beforeOrAfter, destSection){
+        const scaleY0 = [
+            { transform: 'scaleY(1)' },
+            { transform: 'scaleY(0)' }
+        ];
+        const scaleY1 = [
+            { transform: 'scaleY(0)' },
+            { transform: 'scaleY(1)' }
+        ];
+        await this.sectionDiv.animate(scaleY0, 100).finished;
+        if(beforeOrAfter == "before"){
+            if(typeof destSection == "object"){
+            this.sectionDiv.parentNode.insertBefore(
+                this.sectionDiv, destSection.sectionDiv);
+            }
+        }
+        else{
+            this.sectionDiv.parentNode.appendChild(this.sectionDiv);
+        }
+        this.sectionDiv.animate(scaleY1, 100);
     }
 }
 
