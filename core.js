@@ -1042,6 +1042,7 @@ function updateInfo(term){
                             var currentCourse = new Course(
                                 data.OfferedCourses.course[k].CourseData);
                             if(classes[j].code == currentCourse.code){
+                                var toDelete = [];
                                 // Once class match is found, iterate through
                                 // each section and update it with the
                                 // corresponding section from search
@@ -1053,9 +1054,28 @@ function updateInfo(term){
                                         classes[j].SectionData[l] = matches[0];
                                         classes[j].SectionData[l].scheduled = scheduled;
                                     }
+                                    // If the section no longer has a match in
+                                    // USC schedule of classes, add it to the
+                                    // list of sections to be deleted
+                                    else if(matches.length==0){
+                                        toDelete.push(classes[j].SectionData[l]);
+                                    }
                                     else{
                                         // TO-DO: Expand error catching for this
                                         alert("Error updating class info");
+                                    }
+                                }
+                                for(let l=0;l<toDelete.length;l++){
+                                    classes[j].SectionData.splice(
+                                        classes[j].SectionData.indexOf(
+                                            toDelete[l]), 1);
+                                }
+                                // Add any new sections not previously present
+                                for(let l=0;l<currentCourse.SectionData.length;l++){
+                                    var matches = classes[j].SectionData.filter(
+                                        e => e.id === currentCourse.SectionData[l].id);
+                                    if(matches.length==0){
+                                        classes[j].SectionData.push();
                                     }
                                 }
                             }
