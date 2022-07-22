@@ -142,9 +142,16 @@ but it might have benefits */
     bottom: 2px;
 }
 
-.searchSection .fa-solid {
+.searchSection .fa-plus, .searchSection .fa-xmark {
     right: 2px;
     bottom: 2px;
+}
+.searchSection .fa-thumbtack {
+    right: 2px;
+    top: 3px;
+}
+.searchSection .fa-thumbtack.active {
+    color: #007bff;
 }
 .fa-solid.fa-slash {
     right: -1px;

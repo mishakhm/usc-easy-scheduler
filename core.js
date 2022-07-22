@@ -12,6 +12,7 @@ class Course {
         this.prereq_text = CourseData.prereq_text;
         this.coreq_text = CourseData.coreq_text;
         this.units = "0.0";
+        this.sectionTypes = [];
         this.SectionData = [];
         if (Array.isArray(CourseData.SectionData)){
             for(let i = 0; i<CourseData.SectionData.length; i++){
@@ -23,11 +24,51 @@ class Course {
                 // Grab all sections, as Section class objects
                 this.SectionData.push(new Section(CourseData.SectionData[i], this.code, this.prefix));
                 this.SectionData[i].parent = this;
-            }}
-            else{
-                this.units = CourseData.SectionData.units;
-                this.SectionData.push(new Section(CourseData.SectionData, this.code, this.prefix));
+                // If this section type hasn't been encountered yet,
+                // add it to the array
+                if(this.sectionTypes.filter(e => 
+                    e.type == this.SectionData[i].type).length==0){
+                        this.sectionTypes.push({type: this.SectionData[i].type});
+                    }
             }
+        }
+        // USC doesn't use an array if a class only has one section
+        else{
+            this.units = CourseData.SectionData.units;
+            this.SectionData.push(new Section(CourseData.SectionData, this.code, this.prefix));
+            this.SectionData[0].parent = this;
+            this.sectionTypes.push({type: this.SectionData[0].type});
+        }
+        // If displayOrders already exist from the object being used for the
+        // constructor (if importing from stored myClasses), use it
+        for(let i = 0; i<this.sectionTypes.length; i++){
+            this.sectionTypes[i].displayOrder = [];
+            if(Array.isArray(CourseData.sectionTypes)){
+                let existingType = CourseData.sectionTypes.filter(e =>
+                    e.type == this.sectionTypes[i].type)[0];
+                for(let j = 0; j<existingType.displayOrder.length; j++){
+                    // Find matching section within this Course object
+                    // and push pointer to it
+                    this.sectionTypes[i].displayOrder.push(
+                        this.SectionData.filter(e => 
+                            e.id == existingType.displayOrder[j].id)[0]);
+                }
+            }
+            // else{
+            //     this.sectionTypes[i].displayOrder = [];
+            // }
+            // Add any missing sections that match the type to the displayOrder
+            for(let j = 0; j<this.SectionData.length; j++){
+                if(this.SectionData[j].type ==
+                    this.sectionTypes[i].type &&
+                        this.sectionTypes[i].displayOrder.filter(e => 
+                            e.id == this.SectionData[j].id).length == 0){
+                                this.sectionTypes[i].displayOrder.push(
+                                    this.SectionData[j]
+                                )
+                }
+            }
+        }
     }
     createHTML(addTo, type){
         // Create div for all info for a single course
@@ -47,6 +88,7 @@ class Course {
         // Add course info
         var displayCourseInfo = document.createElement("div");
         displayCourseInfo.className = "displayCourseInfo";
+
         // "Add class" icon if in search
         if (type == "search"){
             var addClassButton = addElement("i", "fa-solid", outer,
@@ -78,6 +120,7 @@ class Course {
                 e.stopPropagation();
             });
         }
+
         // "Remove from my classes" button if in myClasses
         else if (type == "myClasses") {
             var removeClassButton = addElement("i", "fa-solid fa-xmark", outer,
@@ -87,6 +130,7 @@ class Course {
                 e.stopPropagation();
             });
         }
+
         // Add pre-req and co-req info
         if (typeof this.prereq_text == "string"){
             var extraInfo = addElement("div", "extraInfo", displayCourseInfo, "");
@@ -100,8 +144,7 @@ class Course {
             addElement("p", "", extraInfo,
             "Co-reqs: " + this.coreq_text)}
 
-        // Add all course sections to info
-        var sectionTypes = [];
+
         // Adds CSS class to a div based on which type of section 
         // it corresponds to
         function addTypeClass (div, sectType){
@@ -118,47 +161,82 @@ class Course {
                 div.classList.add("typeDis");
             }
         }
-        for(let j = 0; j<this.SectionData.length; j++){
-            // If this section type hasn't been encountered yet,
-            // create a div for it and add it to sectionTypes array 
-            if(sectionTypes.filter(e => e.type == this.SectionData[j].type)
-            .length==0){
-                var typeDiv = addElement("div", "searchResultType",
-                displayCourseInfo, "");
+        // Create divs for each section type
+        for(let i = 0; i<this.sectionTypes.length; i++){
+            let typeDiv = addElement("div", "searchResultType",
+            displayCourseInfo, "");
 
-                var typeDivOuter = addElement("div", "searchResultTypeOuter",
-                typeDiv, "");
-                // Add title to section type dropdown, including the number
-                // of sections fitting this type
-                addElement("p", "", typeDivOuter, this.SectionData[j].type + " (" + 
-                this.SectionData.filter(
-                    e => e.type == this.SectionData[j].type).length
-                    + ")");
-                // Add CSS class to div based on which type it's for (to color)
-                addTypeClass(typeDiv, this.SectionData[j].type);
+            let typeDivOuter = addElement("div", "searchResultTypeOuter",
+            typeDiv, "");
 
-                var typeDivContent = addElement("div",
-                "searchResultTypeContent", typeDiv, "");
-                typeDivContent.style.display = "none";
+            // Add title to section type dropdown, including the number
+            // of sections fitting this type
+            addElement("p", "", typeDivOuter, this.sectionTypes[i].type + 
+            " (" + this.SectionData.filter(
+                e => e.type == this.sectionTypes[i].type).length + ")");
+            // Add CSS class to div based on which type it's for (to color)
+            addTypeClass(typeDiv, this.sectionTypes[i].type);
 
-                addElement("i", "dropIcon fa-solid fa-chevron-down", typeDivOuter, "");
-                // Add accordion dropdown functionality
-                typeDivOuter.addEventListener('click', accordion);
+            var typeDivContent = addElement("div",
+            "searchResultTypeContent", typeDiv, "");
+            typeDivContent.style.display = "none";
 
-                sectionTypes.push({
-                    type: this.SectionData[j].type,
-                    outerDiv: typeDivOuter,
-                    innerDiv: typeDivContent
-                });
+            addElement("i", "dropIcon fa-solid fa-chevron-down",
+                typeDivOuter, "");
+            // Add accordion dropdown functionality
+            typeDivOuter.addEventListener('click', accordion);
+
+            // Add all sections of this type according to their displayOrder
+            for(let k = 0; k<this.sectionTypes[i].displayOrder.length; k++){
+                var sectionDiv = this.sectionTypes[i].displayOrder[k]
+                    .createHTML(typeDivContent, type);
+                addTypeClass(sectionDiv, this.sectionTypes[i].type);
             }
+            
+            this.sectionTypes[i].outerDiv = typeDivOuter;
+            this.sectionTypes[i].innerDiv = typeDivContent;
+        }
+        // for(let j = 0; j<this.SectionData.length; j++){
+            // // If this section type hasn't been encountered yet,
+            // // create a div for it and add it to sectionTypes array 
+            // if(sectionTypes.filter(e => e.type == this.SectionData[j].type)
+            // .length==0){
+            //     var typeDiv = addElement("div", "searchResultType",
+            //     displayCourseInfo, "");
+
+            //     var typeDivOuter = addElement("div", "searchResultTypeOuter",
+            //     typeDiv, "");
+            //     // Add title to section type dropdown, including the number
+            //     // of sections fitting this type
+            //     addElement("p", "", typeDivOuter, this.SectionData[j].type + " (" + 
+            //     this.SectionData.filter(
+            //         e => e.type == this.SectionData[j].type).length
+            //         + ")");
+            //     // Add CSS class to div based on which type it's for (to color)
+            //     addTypeClass(typeDiv, this.SectionData[j].type);
+
+            //     var typeDivContent = addElement("div",
+            //     "searchResultTypeContent", typeDiv, "");
+            //     typeDivContent.style.display = "none";
+
+            //     addElement("i", "dropIcon fa-solid fa-chevron-down", typeDivOuter, "");
+            //     // Add accordion dropdown functionality
+            //     typeDivOuter.addEventListener('click', accordion);
+
+            //     sectionTypes.push({
+            //         type: this.SectionData[j].type,
+            //         outerDiv: typeDivOuter,
+            //         innerDiv: typeDivContent
+            //     });
+            // }
             // Create this section's div, and find and add it to the matching
             // type div by filtering sectionTypes array
-            var sectionDiv = this.SectionData[j].createHTML(
-                sectionTypes.filter(e =>
-                    e.type == this.SectionData[j].type)[0].innerDiv, type);
-            addTypeClass(sectionDiv, this.SectionData[j].type);
+        //     var sectionDiv = this.SectionData[j].createHTML(
+        //         sectionTypes.filter(e =>
+        //             e.type == this.SectionData[j].type)[0].innerDiv, type);
+        //     addTypeClass(sectionDiv, this.SectionData[j].type);
             
-        }
+        // }
         this.classDiv.appendChild(displayCourseInfo);
         // Add the whole course div to the results
         addTo.appendChild(this.classDiv);
@@ -257,6 +335,12 @@ class Section {
         else{
             this.scheduled = false;
         }
+        if(typeof SectionData.pinned == "boolean"){
+            this.pinned = SectionData.pinned;
+        }
+        else{
+            this.pinned = false;
+        }
         this.parsedDay = "";
         if(typeof this.day == "string"){
             var dayParse = this.day;
@@ -276,6 +360,14 @@ class Section {
             }}
         this.sched = () => this.schedule();
         this.unsched = () => this.unschedule();
+        this.pintoggle = () => {
+            if(this.pinned){
+                this.unpin();
+            }
+            else{
+                this.pin();
+            }
+        }
         this.calDragStart = (event) => calDragStart(this.parent,this.type,this,event);
         this.calDragEnd = () => calDragEnd(this);
     }
@@ -320,12 +412,21 @@ class Section {
             this.number_registered + "/" + this.spaces_available);
         }
 
-        // Add "schedule section" button if this is called for myClasses
+        // Add "schedule section" and "pin" button if this is for myClasses
         if(type == "myClasses"){
             var schedSectButton = addElement("i", "fa-solid fa-plus",
             sectionDiv, "");
             schedSectButton.addEventListener('click', this.sched);
+
+            var pinButton = addElement("i", "fa-solid fa-thumbtack",
+            sectionDiv, "");
+            pinButton.addEventListener('click', this.pintoggle);
+            if(this.pinned){
+                pinButton.classList.toggle("active");
+            }
         }
+
+
         this.sectionDiv = sectionDiv;
         addTo.appendChild(sectionDiv);
         return this.sectionDiv;
@@ -415,7 +516,7 @@ class Section {
     unschedule(){
         this.scheduled = false;
         // Change the "unschedule section" button in myClasses to "schedule section"
-        var schedSectButton = this.sectionDiv.getElementsByClassName("fa-solid")[0];
+        var schedSectButton = this.sectionDiv.getElementsByClassName("fa-xmark")[0];
         schedSectButton.classList.toggle("fa-plus");
         schedSectButton.classList.toggle("fa-xmark");
         
@@ -433,6 +534,53 @@ class Section {
         chrome.storage.local.set({'classes': classes});
         colorClasses();
         crossOutConflicts();
+    }
+    pin(){
+        let displayOrder = this.parent.sectionTypes.filter(e =>
+            e.type == this.type)[0].displayOrder;
+        // Remove this section from the displayOrder
+        // and add it again at the front
+        displayOrder.unshift(
+            displayOrder.splice(displayOrder.indexOf(this), 1)[0]);
+        // Move the div in the interface up to the top of the list
+        if(typeof displayOrder[1] == "object"){
+            this.sectionDiv.parentNode.insertBefore(
+                this.sectionDiv, displayOrder[1].sectionDiv);
+        }
+        this.pinned = true;
+        // Change the pin button color
+        var pinButton = this.sectionDiv.getElementsByClassName("fa-thumbtack")[0];
+        pinButton.classList.toggle("active");
+        // Save myClasses
+        chrome.storage.local.set({'classes': classes});
+    }
+    unpin(){
+        let displayOrder = this.parent.sectionTypes.filter(e =>
+            e.type == this.type)[0].displayOrder;
+        // Find the index at which the sections are no longer pinned
+        let index;
+        for(let i = 0; i<displayOrder.length; i++){
+            if(displayOrder[i].pinned == false){
+                index = i;
+                break;
+            }
+        }
+        // Move the div in the interface to the correct location
+        // below the pinned area
+        if(typeof displayOrder[index] == "object"){
+            this.sectionDiv.parentNode.insertBefore(
+                this.sectionDiv, displayOrder[index].sectionDiv);
+        }
+        // Remove this section from the displayOrder
+        // and add it at the previously found index
+        displayOrder.splice(
+            index-1, 0, displayOrder.splice(displayOrder.indexOf(this), 1)[0]);
+        this.pinned = false;
+        // Change the pin button color
+        var pinButton = this.sectionDiv.getElementsByClassName("fa-thumbtack")[0];
+        pinButton.classList.toggle("active");
+        // Save myClasses
+        chrome.storage.local.set({'classes': classes});
     }
 }
 
