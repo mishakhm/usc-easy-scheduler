@@ -187,58 +187,65 @@ but it might have benefits */
     margin-top: 3px;
 }
 
-.searchResultType.typeLec {
+.typeLec.searchResultType {
     background: #c8ffb8;
 }
-.searchSection.typeLec {
+.typeLec .searchSection {
     background: #e9ffe3;
 }
-.searchSection.typeLec p.sectionLabel {
+.typeLec .searchSection p.sectionLabel {
     color: green;
 }
-.searchSection.typeLec .fa-solid.fa-slash {
+.typeLec .searchSection .fa-solid.fa-slash {
     -webkit-text-stroke-color: #e9ffe3;
 }
 
-.searchResultType.typeLab {
+.typeLab.searchResultType {
     background: #e0e0ff;
 }
-.searchSection.typeLab {
+.typeLab .searchSection {
     background: #f3f3ff;
 }
-.searchSection.typeLab p.sectionLabel {
+.typeLab .searchSection p.sectionLabel {
     color: #66f;
 }
-.searchSection.typeLab .fa-solid.fa-slash {
+.typeLab .searchSection .fa-solid.fa-slash {
     -webkit-text-stroke-color: #f3f3ff;
 }
 
-.searchResultType.typeQz {
+.typeQz.searchResultType {
     background: #ffb7ff;
 }
-.searchSection.typeQz {
+.typeQz .searchSection {
     background: #ffe2ff;
 }
-.searchSection.typeQz p.sectionLabel {
+.typeQz .searchSection p.sectionLabel {
     color: #909;
 }
-.searchSection.typeQz .fa-solid.fa-slash {
+.typeQz .searchSection .fa-solid.fa-slash {
     -webkit-text-stroke-color: #ffe2ff;
 }
 
-.searchResultType.typeDis {
+.typeDis.searchResultType {
     background: #ffe0cc;
 }
-.searchSection.typeDis {
+.typeDis .searchSection {
     background: #fff3eb;
 }
-.searchSection.typeDis p.sectionLabel {
+.typeDis .searchSection p.sectionLabel {
     color: #f60;
 }
-.searchSection.typeDis .fa-solid.fa-slash {
+.typeDis .searchSection .fa-solid.fa-slash {
     -webkit-text-stroke-color: #fff3eb;
 }
 
+.filterDiv {
+    padding: 2px;
+}
+.filterDiv input {
+    width: 100%;
+    box-sizing: border-box;
+}
 
 .displayCourseInfo {
     display: none;
