@@ -17,6 +17,9 @@
                     <button id="searchbutton">
                         Search
                     </button>
+                    <button id="webregbutton">
+                        Connect to USC
+                    </button>
                 </div>
                 <div id="classes" class="leftbarcontent">
                     <div class="classesContainer" id="myClassesContainer"></div>
@@ -29,6 +32,20 @@
                     <input type="text" id="input"placeholder="Search by department ex. CSCI">
                     <div id="loading">Loading...</div>
                     <div class="classesContainer" id="searchResultsContainer"></div>
+                </div>
+                <div id="webreg" class="leftbarcontent">
+                    This extension never sees your USC login info,
+                    you just need to be logged in in this browser session
+                    for requests to webreg to work
+                    <button id="login">Log into my.usc.edu</button>
+                    <div>
+                        <button id="termSelect">Test login status</button>
+                        <i id="loginStatus" class='fa-solid fa-xmark'></i>
+                    </div>
+                    <button id="loadCourseBin">Load Webreg Schedule as Current Schedule</button>
+                    <button id="pushCourseBin">Push Current Schedule to CourseBin</button>
+                    <button id="regSchedule">Register Current Schedule</button>
+                    <button id="unregCourseBin">Unregister CourseBin</button>
                 </div>
     
             </div>
@@ -409,7 +426,12 @@
                 </div>
             </div>
             
-          </div>
+        </div>
+        <div id="loadingOverlay">
+            <div>
+                <i class="fa-solid fa-spinner"></i>
+            </div>
+        </div>
           <script src="core.js"></script>
     </body>
 </html>

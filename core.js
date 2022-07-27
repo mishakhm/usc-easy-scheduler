@@ -247,8 +247,7 @@ class Course {
     if (containsClass(classes, this.code)==-1) {
       const index = classes.push(this);
       // Save updated list of classes
-      // storage.sync currently exceeds QUOTA_BYTES_PER_ITEM but may be ideal
-      chrome.storage.local.set({'classes': classes});
+      saveMyClasses();
       // Add the HTML for the newly added class to myClasses div
       classes[index-1].createHTML(
           document.getElementById('myClassesContainer'), 'myClasses');
@@ -269,7 +268,7 @@ class Course {
     // Removes this class from classes array
     classes.splice(classes.findIndex((e) => e == this), 1);
     // Save updated list of classes
-    chrome.storage.local.set({'classes': classes});
+    saveMyClasses();
   }
 }
 
@@ -323,6 +322,11 @@ class Section {
     } else {
       this.scheduled = false;
     }
+    if (typeof SectionData.registered == 'boolean') {
+      this.registered = SectionData.registered;
+    } else {
+      this.registered = false;
+    }
     if (typeof SectionData.pinned == 'boolean') {
       this.pinned = SectionData.pinned;
     } else {
@@ -334,6 +338,11 @@ class Section {
       while (dayParse != '') {
         const currentDay = dayParse.slice(0, 1);
         dayParse = dayParse.slice(1);
+        // The daySections array makes work with the calendar easier
+        // Each time a section meets is a distinct daySection
+        // i.e. section 50342 may always be at 8:30
+        // but it meets once on Tuesday (one daySection under 50342)
+        // and once on Thursday (another daySection under 50342)
         this.daySections.push({day: currentDay});
         if (currentDay == 'T') {
           this.parsedDay += 'Tu';
@@ -382,7 +391,7 @@ class Section {
       addElement('p', '', sectionDiv, this.section_title);
     }
 
-    // Shows number of people registed for a section, and "closed" if full
+    // Shows number of people registered for a section, and "closed" if full
     if (this.number_registered >= this.spaces_available) {
       const numReg = addElement('p', '', sectionDiv,
           this.number_registered + '/' + this.spaces_available + ' Closed');
@@ -393,6 +402,7 @@ class Section {
     }
 
     // Add "schedule section" and "pin" button if this is for myClasses
+    // As well as registration status indicator
     if (type == 'myClasses') {
       const schedSectButton = addElement('i', 'fa-solid fa-plus',
           sectionDiv, '');
@@ -403,6 +413,16 @@ class Section {
       pinButton.addEventListener('click', this.pintoggle);
       if (this.pinned) {
         pinButton.classList.toggle('active');
+      }
+
+      const registeredIcon = addElement(
+          'i', 'fa-solid registeredIcon', sectionDiv, '');
+      if (this.registered) {
+        registeredIcon.classList.add('fa-clipboard-check');
+        registeredIcon.title = 'This section is registered';
+      } else {
+        registeredIcon.classList.add('fa-clipboard');
+        registeredIcon.title = 'This section is not registered';
       }
     }
 
@@ -441,9 +461,9 @@ class Section {
       alert('This section conflicts with an already scheduled section');
       return false;
     } else {
-      this.scheduled = true;
       const cal = document.getElementById('scrollcal');
       const unschedButton = [];
+      // Creates a div on the calendar for each daySection
       for (let i = 0; i<this.daySections.length; i++) {
         const sectionDivText = this.code + ': (' + this.id + '), ' +
                 this.type + '. ' + this.profList;
@@ -483,6 +503,14 @@ class Section {
       schedSectButton.removeEventListener('click', this.sched);
       schedSectButton.addEventListener('click', this.unsched);
 
+      // If this.scheduled was already true, the .scheduled status of this
+      // did not change and all that needs to be done is the creation of the
+      // section. Otherwise, update this.scheduled and save to local storage
+      if (!this.scheduled) {
+        this.scheduled = true;
+        saveMyClasses();
+      }
+
       // Find the matching sectionTypes title text
       // and update number scheduled
       this.parent.sectionTypes.filter((e) => e.type == this.type)[0]
@@ -490,8 +518,7 @@ class Section {
 
       // Add the section to the array of currently scheduled sections
       calSections.push(this);
-      // Save myClasses because this.scheduled has changed
-      chrome.storage.local.set({'classes': classes});
+
       colorClasses();
       crossOutConflicts();
       return true;
@@ -529,7 +556,7 @@ class Section {
     // Remove the section from the array of scheduled sections
     calSections.splice(index, 1);
     // Save myClasses because this.scheduled has changed
-    chrome.storage.local.set({'classes': classes});
+    saveMyClasses();
     colorClasses();
     crossOutConflicts();
   }
@@ -547,7 +574,7 @@ class Section {
     const pinButton = this.sectionDiv.getElementsByClassName('fa-thumbtack')[0];
     pinButton.classList.toggle('active');
     // Save myClasses
-    chrome.storage.local.set({'classes': classes});
+    saveMyClasses();
   }
   unpin() {
     const displayOrder = this.parent.sectionTypes.filter((e) =>
@@ -578,7 +605,7 @@ class Section {
     const pinButton = this.sectionDiv.getElementsByClassName('fa-thumbtack')[0];
     pinButton.classList.toggle('active');
     // Save myClasses
-    chrome.storage.local.set({'classes': classes});
+    saveMyClasses();
   }
   async insertAnimated(beforeOrAfter, destSection) {
     const scaleY0 = [
@@ -600,12 +627,136 @@ class Section {
     }
     this.sectionDiv.animate(scaleY1, 100);
   }
+  setRegInfo(registered) {
+    const registeredIcon =
+        this.sectionDiv.getElementsByClassName('registeredIcon')[0];
+    if (registered) {
+      this.registered = true;
+      registeredIcon.classList.add('fa-clipboard-check');
+      registeredIcon.classList.remove('fa-clipboard');
+      registeredIcon.title = 'This section is registered';
+      if (!this.pinned) {
+        this.pin();
+      }
+    } else {
+      this.registered = false;
+      registeredIcon.classList.add('fa-clipboard');
+      registeredIcon.classList.remove('fa-clipboard-check');
+      registeredIcon.title = 'This section is not registered';
+    }
+  }
 }
 
-function getCourseBin() {
-  fetch('https://webreg.usc.edu/Scheduler/Read', {method: 'POST'})
-      .then((response) => response.json())
-      .then((data) => console.log(data));
+function displayLoadingStatus(done) {
+  const loading = document.getElementById('loadingOverlay');
+  console.log(loading);
+  if (!done) {
+    loading.style.display = 'block';
+  } else {
+    loading.style.display = 'none';
+  }
+}
+
+async function webRegTermSelect() {
+  try {
+    return await fetch('https://my.usc.edu/portal/oasis/webregbridge.php', {method: 'GET'})
+        .then(async function(response1) {
+          console.log(response1);
+
+          const termSelectURL = 'https://webreg.usc.edu/Terms/termSelect?term=' +
+          encodeURIComponent(term);
+          return await fetch(termSelectURL, {method: 'GET'})
+              .then((response) => {
+                console.log(response);
+                if (response.url == 'https://webreg.usc.edu/close') {
+                  displayLoginStatus(false);
+                  return false;
+                } else if (response.url == 'https://webreg.usc.edu/Departments') {
+                  displayLoginStatus(true);
+                  return true;
+                } else {
+                  throw new Error('Error connecting to webreg');
+                }
+              });
+        });
+  } catch (error) {
+    displayLoginStatus(false);
+    console.error(error);
+    throw new Error('Error connecting to webreg');
+  }
+}
+
+async function getCourseBin() {
+  try {
+    return await webRegTermSelect()
+        .then((loggedIn) => {
+          if (!loggedIn) {
+            alert('Error fetching coursebin, ' +
+            'you are likely not logged in to my.usc.edu');
+            throw new Error('Error fetching coursebin');
+          } else {
+            return fetch('https://webreg.usc.edu/Scheduler/Read', {method: 'POST'})
+                .then((response) => response.json())
+                .then((data) => {
+                  for (let i = 0; i<data.Data.length; i++) {
+                    parseCourseBinElement(data.Data[i]);
+                  }
+                  return scheduleFromParsedBin(data.Data);
+                });
+          }
+        });
+  } catch (error) {
+    console.error(error);
+    throw new Error('Error fetching courseBin');
+  }
+}
+
+// Takes in raw courseBin data from USC and extracts info
+// in the format used by the rest of this code
+function parseCourseBinElement(element) {
+  // Extracts course code and ID from the USC-provided Title value which
+  // houses all the relevant info in one string
+  const paren1 = element.Title.indexOf('(');
+  const paren2 = element.Title.indexOf(')');
+  element.code = element.Title.slice(0, paren1 - 1);
+  element.id = element.Title.slice(paren1 + 1, paren2);
+
+  const registered = element.Scheduled.slice(1);
+  if (registered == 'N') {
+    element.registered = false;
+  } else if (registered == 'Y') {
+    element.registered = true;
+  } else {
+    throw new Error('courseBin data is not in the expected format');
+  }
+}
+
+// Takes in a courseBin array that has already been parsed
+// by parseCourseBinElement(), then makes a schedule from it
+// in the format used by other functions
+function scheduleFromParsedBin(courseBin) {
+  const sections = [];
+  for (let i = 0; i<courseBin.length; i++) {
+    // If the current section is not already in the sections array
+    // (by filtering for id match), add the section
+    // This is necessary because the courseBin as provided by USC
+    // shows daySections, not overall sections,
+    // and thus has duplicates for our purposes
+    if (sections.filter((e) => e.id == courseBin[i].id).length == 0) {
+      sections.push({
+        prefix: deptFromCode(courseBin[i].code),
+        code: courseBin[i].code,
+        id: courseBin[i].id,
+        registered: courseBin[i].registered,
+      });
+    }
+  }
+  return {sections: sections};
+}
+
+function deptFromCode(code) {
+  const hyphen = code.indexOf('-');
+  return code.slice(0, hyphen);
 }
 
 function searchDept(dept, term) {
@@ -621,9 +772,10 @@ function searchDept(dept, term) {
 
 // Searches for a class matching given dept and code, then adds it to myClasses
 async function searchAddClass(dept, term, code) {
+  displayLoadingStatus(false);
   const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
     encodeURIComponent(dept) + '/' + encodeURIComponent(term);
-  const response = await fetch(url)
+  return await fetch(url)
       .then((response) => response.json())
       .then((data) => {
         for (let i=0; i<data.OfferedCourses.course.length; i++) {
@@ -633,8 +785,8 @@ async function searchAddClass(dept, term, code) {
             currentCourse.add();
           }
         };
+        displayLoadingStatus(true);
       });
-  return response;
 }
 
 function showSearchedCourses(searchedCourseList, dept) {
@@ -713,6 +865,21 @@ function unscheduleAll() {
   }
 }
 
+// Makes a deep copy of myClasses then removes that deep copy of any circular
+// references which could cause chrome.storage to fail, then stores it.
+async function saveMyClasses() {
+  const noncircular = [];
+  for (let i = 0; i<classes.length; i++) {
+    noncircular.push(new Course(classes[i]));
+  }
+  for (let i = 0; i<noncircular.length; i++) {
+    for (let j = 0; j<noncircular[i].SectionData.length; j++) {
+      noncircular[i].SectionData[j].parent = null;
+    }
+  }
+  await chrome.storage.local.set({'classes': noncircular});
+}
+
 function saveSchedule(name) {
   const sections = [];
   for (let i=0; i<calSections.length; i++) {
@@ -745,36 +912,21 @@ function saveSchedule(name) {
 
 // Unschedules current schedule and loads the given
 // schedule[] where each element has {prefix, code, id}
-function loadSchedule(schedule) {
+async function loadSchedule(schedule) {
   unscheduleAll();
   // Iterate through each section in the schedule
   for (let i=0; i<schedule.sections.length; i++) {
-    const index = containsClass(classes, schedule.sections[i].code);
-    // If the class in the schedule is already in myClasses
-    if (index!=-1) {
-      // Find the matching section id and schedule it
-      for (let j=0; j<classes[index].SectionData.length; j++) {
-        if (classes[index].SectionData[j].id==schedule.sections[i].id) {
-          classes[index].SectionData[j].schedule();
-        }
-      }
-    // If not, add the class to myClasses and schedule it
-    } else {
-      // Add class to myClasses
-      searchAddClass(schedule.sections[i].prefix,
-          term, schedule.sections[i].code).then(function() {
-        // Find the matching section id and schedule it
-        for (let j=0; j<classes[classes.length-1].SectionData.length; j++) {
-          if (classes[classes.length-1].SectionData[j].id ==
-              schedule.sections[i].id) {
-            classes[classes.length-1].SectionData[j].schedule();
-          }
-        }
-      });
+    let index = containsClass(classes, schedule.sections[i].code);
+    // If the class is not in myClasses, add it and update the index
+    if (index == -1) {
+      await searchAddClass(
+          schedule.sections[i].prefix, term, schedule.sections[i].code);
+      index = classes.length-1;
     }
+    // Find the section matching the ID and schedule it
+    classes[index].SectionData.filter((e) => e.id == schedule.sections[i].id)[0]
+        .schedule();
   }
-  // Displays name of loaded schedule in dropdown bar
-  document.getElementById('schedinput').value = schedule.name;
 }
 
 // Adds listings for each saved schedule to dropdown
@@ -785,6 +937,8 @@ function createScheduleList() {
     const listEntry = addElement('li', '', dropdown, schedules[i].name);
     listEntry.addEventListener('click', function() {
       loadSchedule(schedules[i]);
+      // Displays name of loaded schedule in dropdown bar
+      document.getElementById('schedinput').value = schedules[i].name;
     });
   }
 }
@@ -1203,8 +1357,41 @@ function crossOutConflicts() {
   }
 }
 
+async function updateInfo(term) {
+  displayLoadingStatus(false);
+  try {
+    await updateBasicInfo(term);
+    await updateUniqueInfo(term);
+
+    // Once all classes/departments have been done,
+    // save the updated info
+    // and reload the page so HTML can be regenerated
+
+    // For some reason the usual local.storage.set method for saving classes
+    // causes a quota exceeded exception here, even though it works elsewhere.
+    // Possible cause of the issue is the fact that sections have .parent
+    // properties linking them in a circular manner to their parents,
+    // saveMyClasses() saves the classes array without those.
+    await saveMyClasses();
+
+    lastRefresh = new Date();
+    lastRefresh =
+        lastRefresh.toLocaleString('default', {month: 'short'}) +
+        ' ' + lastRefresh.getDate() + ' ' +
+        lastRefresh.toLocaleTimeString(
+            'en-US', {hour: '2-digit', minute: '2-digit'});
+
+    await chrome.storage.local.set({'lastRefresh': lastRefresh});
+    displayLoadingStatus(true);
+  } catch (error) {
+    alert(error);
+    console.error(error);
+  }
+  location.reload();
+}
+
 // Gets new info from USC servers and updates info for each class in myClasses
-function updateInfo(term) {
+async function updateBasicInfo(term) {
   // Find all needed departments to update classes from
   const depts = [];
   for (let i=0; i<classes.length; i++) {
@@ -1213,85 +1400,88 @@ function updateInfo(term) {
     }
   }
   // Pull info for each department, and update relevant classes in myClasses
-  (async function() {
-    for (let i=0; i<depts.length; i++) {
-      const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-            encodeURIComponent(depts[i]) + '/' + encodeURIComponent(term);
+  for (let i=0; i<depts.length; i++) {
+    const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
+          encodeURIComponent(depts[i]) + '/' + encodeURIComponent(term);
 
-      fetch(url)
-          .then((response) => response.json())
-          .then((data) => {
-            // Iterate through all classes in myClasses
-            for (let j=0; j<classes.length; j++) {
-              // Proceed if the current class is in this searched department
-              if (classes[j].prefix==depts[i]) {
-                // Iterate through all the classes returned by search
-                // and check if they are the same class as the current
-                // class from myClass to be updated
-                for (let k=0; k<data.OfferedCourses.course.length; k++) {
-                  const currentCourse = new Course(
-                      data.OfferedCourses.course[k].CourseData);
-                  if (classes[j].code == currentCourse.code) {
-                    const toDelete = [];
+    await fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+          // Iterate through all classes in myClasses
+          for (let j=0; j<classes.length; j++) {
+            // Proceed if the current class is in this searched department
+            if (classes[j].prefix==depts[i]) {
+              // Iterate through all the classes returned by search
+              // and check if they are the same class as the current
+              // class from myClass to be updated
+              for (let k=0; k<data.OfferedCourses.course.length; k++) {
+                const currentCourse = new Course(
+                    data.OfferedCourses.course[k].CourseData);
+                if (classes[j].code == currentCourse.code) {
+                  const toDelete = [];
 
-                    // Once class match is found, iterate through
-                    // each section and update it with the
-                    // corresponding section from search
-                    for (let l=0; l<classes[j].SectionData.length; l++) {
-                      const matches = currentCourse.SectionData.filter(
-                          (e) => e.id === classes[j].SectionData[l].id);
-                      if (matches.length==1) {
-                        const scheduled = classes[j].SectionData[l].scheduled;
-                        classes[j].SectionData[l] = matches[0];
-                        classes[j].SectionData[l].scheduled = scheduled;
+                  // Once class match is found, iterate through
+                  // each section and update it with the
+                  // corresponding section from search
+                  for (let l=0; l<classes[j].SectionData.length; l++) {
+                    const matches = currentCourse.SectionData.filter(
+                        (e) => e.id === classes[j].SectionData[l].id);
+                    if (matches.length==1) {
+                      const scheduled = classes[j].SectionData[l].scheduled;
+                      const registered = classes[j].SectionData[l].registered;
+                      const pinned = classes[j].SectionData[l].pinned;
+                      const sectionDiv = classes[j].SectionData[l].sectionDiv;
+                      classes[j].SectionData[l] = matches[0];
+                      classes[j].SectionData[l].scheduled = scheduled;
+                      classes[j].SectionData[l].registered = registered;
+                      classes[j].SectionData[l].pinned = pinned;
+                      classes[j].SectionData[l].sectionDiv = sectionDiv;
 
-                      // If the section no longer has a match in
-                      // USC schedule of classes, add it to the
-                      // list of sections to be deleted
-                      } else if (matches.length==0) {
-                        toDelete.push(classes[j].SectionData[l]);
-                      } else {
-                        // TODO: Expand error catching for this
-                        alert('Error updating class info');
-                      }
+                    // If the section no longer has a match in
+                    // USC schedule of classes, add it to the
+                    // list of sections to be deleted
+                    } else if (matches.length==0) {
+                      toDelete.push(classes[j].SectionData[l]);
+                    } else {
+                      // TODO: Expand error catching for this
+                      alert('Error updating class info');
                     }
-                    // Delete all sections queued for deletion
-                    for (let l=0; l<toDelete.length; l++) {
-                      classes[j].SectionData.splice(
-                          classes[j].SectionData.indexOf(
-                              toDelete[l]), 1);
-                    }
-                    // Add any new sections not previously present
-                    for (let l=0; l<currentCourse.SectionData.length; l++) {
-                      const matches = classes[j].SectionData.filter(
-                          (e) => e.id === currentCourse.SectionData[l].id);
-                      if (matches.length==0) {
-                        classes[j].SectionData.push();
-                      }
+                  }
+                  // Delete all sections queued for deletion
+                  for (let l=0; l<toDelete.length; l++) {
+                    classes[j].SectionData.splice(
+                        classes[j].SectionData.indexOf(
+                            toDelete[l]), 1);
+                  }
+                  // Add any new sections not previously present
+                  for (let l=0; l<currentCourse.SectionData.length; l++) {
+                    const matches = classes[j].SectionData.filter(
+                        (e) => e.id === currentCourse.SectionData[l].id);
+                    if (matches.length==0) {
+                      classes[j].SectionData.push(currentCourse.SectionData[l]);
                     }
                   }
                 }
               }
             }
-            // Once all classes/departments have been done,
-            // save the updated info
-            // and reload the page so HTML can be regenerated
-            if (i==depts.length-1) {
-              chrome.storage.local.set({'classes': classes});
+          }
+        });
+  }
+}
 
-              lastRefresh = new Date();
-              lastRefresh =
-                  lastRefresh.toLocaleString('default', {month: 'short'}) +
-                  ' ' + lastRefresh.getDate() + ' ' +
-                  lastRefresh.toLocaleTimeString(
-                      'en-US', {hour: '2-digit', minute: '2-digit'});
-              chrome.storage.local.set({'lastRefresh': lastRefresh});
-
-              location.reload();
-            }
-          });
+async function updateUniqueInfo(term) {
+  // Get courseBin schedule
+  const courseBinSched = await getCourseBin();
+  // Add all missing classes
+  for (let i = 0; i<courseBinSched.sections.length; i++) {
+    if (containsClass(classes, courseBinSched.sections[i].code) == -1) {
+      // If the class is not in myClasses, search for its data and add it
+      await searchAddClass(courseBinSched.sections[i].prefix, term,
+          courseBinSched.sections[i].code);
     }
-  })();
+  }
+  // Update reg info
+  handleUpdatedRegInfo(courseBinSched);
 }
 
 // Listen for changes in webpage zoom, update calendar div positions if needed
@@ -1392,16 +1582,94 @@ document.getElementById('update').addEventListener('click', function() {
   updateInfo(term);
 });
 
-document.getElementById('searchbutton').addEventListener('click', function(e) {
-  document.getElementById('search').style.display = 'flex';
-  document.getElementById('classes').style.display = 'none';
-  e.target.classList.add('active');
-  document.getElementById('classesbutton').classList.remove('active');
-});
-
 document.getElementById('classesbutton').addEventListener('click', function(e) {
   document.getElementById('classes').style.display = 'flex';
   document.getElementById('search').style.display = 'none';
+  document.getElementById('webreg').style.display = 'none';
   e.target.classList.add('active');
   document.getElementById('searchbutton').classList.remove('active');
+  document.getElementById('webregbutton').classList.remove('active');
 });
+
+document.getElementById('searchbutton').addEventListener('click', function(e) {
+  document.getElementById('search').style.display = 'flex';
+  document.getElementById('classes').style.display = 'none';
+  document.getElementById('webreg').style.display = 'none';
+  e.target.classList.add('active');
+  document.getElementById('classesbutton').classList.remove('active');
+  document.getElementById('webregbutton').classList.remove('active');
+});
+
+document.getElementById('webregbutton').addEventListener('click', function(e) {
+  document.getElementById('webreg').style.display = 'flex';
+  document.getElementById('classes').style.display = 'none';
+  document.getElementById('search').style.display = 'none';
+  e.target.classList.add('active');
+  document.getElementById('classesbutton').classList.remove('active');
+  document.getElementById('searchbutton').classList.remove('active');
+});
+
+function displayLoginStatus(status) {
+  if (status == 'loading') {
+    document.getElementById('loginStatus').classList.remove('fa-xmark');
+    document.getElementById('loginStatus').classList.remove('fa-check');
+    document.getElementById('loginStatus').classList.add('fa-spinner');
+  } else if (status == true) {
+    document.getElementById('loginStatus').classList.remove('fa-xmark');
+    document.getElementById('loginStatus').classList.remove('fa-spinner');
+    document.getElementById('loginStatus').classList.add('fa-check');
+  } else {
+    document.getElementById('loginStatus').classList.remove('fa-check');
+    document.getElementById('loginStatus').classList.remove('fa-spinner');
+    document.getElementById('loginStatus').classList.add('fa-xmark');
+  }
+}
+
+async function loginTest() {
+  displayLoginStatus('loading');
+  webRegTermSelect();
+}
+
+loginTest();
+
+document.getElementById('login').addEventListener(
+    'click', function() {
+      window.open('https://my.usc.edu');
+    });
+
+document.getElementById('termSelect').addEventListener(
+    'click', function() {
+      loginTest();
+    });
+
+// Gets parsed courseBin schedule from getCourseBin(), then
+// loads the schedule using loadSchedule(),
+// and also sets registration info for those classes that are registered
+async function loadCourseBin() {
+  displayLoadingStatus(false);
+  try {
+    const courseBinSched = await getCourseBin();
+    await loadSchedule(courseBinSched);
+    handleUpdatedRegInfo(courseBinSched);
+  } catch (error) {
+    console.error(error);
+  }
+  displayLoadingStatus(true);
+}
+
+function handleUpdatedRegInfo(courseBinSched) {
+  for (let i = 0; i<courseBinSched.sections.length; i++) {
+    if (courseBinSched.sections[i].registered) {
+      const course = classes.filter(
+          (e) => e.code == courseBinSched.sections[i].code)[0];
+      const section = course.SectionData.filter(
+          (e) => e.id == courseBinSched.sections[i].id)[0];
+      section.setRegInfo(true);
+    }
+  }
+}
+
+document.getElementById('loadCourseBin').addEventListener(
+    'click', function() {
+      loadCourseBin();
+    });
