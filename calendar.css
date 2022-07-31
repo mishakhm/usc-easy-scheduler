@@ -388,7 +388,7 @@ but it might have benefits */
     color: black;
     cursor: grab;
     font-size: 12px;
-    overflow-y: hidden;
+    overflow: hidden;
 }
 .calsection p {
     font-size: inherit;

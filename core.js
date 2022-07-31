@@ -457,72 +457,68 @@ class Section {
     return ret;
   }
   schedule() {
-    if (this.conflicts().length > 0) {
-      alert('This section conflicts with an already scheduled section');
-      return false;
-    } else {
-      const cal = document.getElementById('scrollcal');
-      const unschedButton = [];
-      // Creates a div on the calendar for each daySection
-      for (let i = 0; i<this.daySections.length; i++) {
-        const sectionDivText = this.code + ': (' + this.id + '), ' +
-                this.type + '. ' + this.profList;
-        const sectionDiv = addElement('div', 'calsection', cal,
-            sectionDivText);
-        // Adds hover text showing the section text (in case text is
-        // too long and gets cut off).
-        // Maybe adds unneccessary clutter?
-        sectionDiv.setAttribute('title', sectionDivText);
-        // Make the section draggable
-        sectionDiv.setAttribute('draggable', true);
-        sectionDiv.addEventListener('dragstart', this.calDragStart);
-        sectionDiv.addEventListener('dragend', this.calDragEnd);
-        // Add unscheduling button to calendar div
-        unschedButton.push(addElement(
-            'button', 'fa-solid fa-xmark', sectionDiv, ''));
-        // Add number currently registered to calendar div
-        addElement('p', 'calnumreg', sectionDiv, this.number_registered + '/' +
-                this.spaces_available);
+    const cal = document.getElementById('scrollcal');
+    const unschedButton = [];
+    // Creates a div on the calendar for each daySection
+    for (let i = 0; i<this.daySections.length; i++) {
+      const sectionDivText = this.code + ': (' + this.id + '), ' +
+              this.type + '. ' + this.profList;
+      const sectionDiv = addElement('div', 'calsection', cal,
+          sectionDivText);
+      // Adds hover text showing the section text (in case text is
+      // too long and gets cut off).
+      // Maybe adds unneccessary clutter?
+      sectionDiv.setAttribute('title', sectionDivText);
+      // Make the section draggable
+      sectionDiv.setAttribute('draggable', true);
+      sectionDiv.addEventListener('dragstart', this.calDragStart);
+      sectionDiv.addEventListener('dragend', this.calDragEnd);
+      // Add unscheduling button to calendar div
+      unschedButton.push(addElement(
+          'button', 'fa-solid fa-xmark', sectionDiv, ''));
+      // Add number currently registered to calendar div
+      addElement('p', 'calnumreg', sectionDiv, this.number_registered + '/' +
+              this.spaces_available);
 
-        this.daySections[i].sectionDiv = sectionDiv;
-      }
-      for (let i = 0; i<unschedButton.length; i++) {
-        unschedButton[i].addEventListener('click', () =>
-          this.unschedule(),
-        );
-      }
-      // Position the newly created div on the calendar based on date/time
-      this.position();
-
-      // Change the schedule section button in myClasses to unschedule section
-      const schedSectButton =
-          this.sectionDiv.getElementsByClassName('fa-plus')[0];
-      schedSectButton.classList.toggle('fa-plus');
-      schedSectButton.classList.toggle('fa-xmark');
-
-      schedSectButton.removeEventListener('click', this.sched);
-      schedSectButton.addEventListener('click', this.unsched);
-
-      // If this.scheduled was already true, the .scheduled status of this
-      // did not change and all that needs to be done is the creation of the
-      // section. Otherwise, update this.scheduled and save to local storage
-      if (!this.scheduled) {
-        this.scheduled = true;
-        saveMyClasses();
-      }
-
-      // Find the matching sectionTypes title text
-      // and update number scheduled
-      this.parent.sectionTypes.filter((e) => e.type == this.type)[0]
-          .setDivTitle();
-
-      // Add the section to the array of currently scheduled sections
-      calSections.push(this);
-
-      colorClasses();
-      crossOutConflicts();
-      return true;
+      this.daySections[i].sectionDiv = sectionDiv;
     }
+    for (let i = 0; i<unschedButton.length; i++) {
+      unschedButton[i].addEventListener('click', () =>
+        this.unschedule(),
+      );
+    }
+    // Position the newly created div on the calendar based on date/time
+    this.position();
+
+    // Change the schedule section button in myClasses to unschedule section
+    const schedSectButton =
+        this.sectionDiv.getElementsByClassName('fa-plus')[0];
+    schedSectButton.classList.toggle('fa-plus');
+    schedSectButton.classList.toggle('fa-xmark');
+
+    schedSectButton.removeEventListener('click', this.sched);
+    schedSectButton.addEventListener('click', this.unsched);
+
+    // If this.scheduled was already true, the .scheduled status of this
+    // did not change and all that needs to be done is the creation of the
+    // section. Otherwise, update this.scheduled and save to local storage
+    if (!this.scheduled) {
+      this.scheduled = true;
+      saveMyClasses();
+    }
+
+    // Find the matching sectionTypes title text
+    // and update number scheduled
+    this.parent.sectionTypes.filter((e) => e.type == this.type)[0]
+        .setDivTitle();
+
+    // Add the section to the array of currently scheduled sections
+    calSections.push(this);
+
+    colorClasses();
+    crossOutConflicts();
+    fitCalSectionOverlaps();
+    return true;
   }
   // Properly positions the section's divs on calendar according to date/time
   position() {
@@ -555,10 +551,13 @@ class Section {
     }
     // Remove the section from the array of scheduled sections
     calSections.splice(index, 1);
+
     // Save myClasses because this.scheduled has changed
     saveMyClasses();
     colorClasses();
     crossOutConflicts();
+    // This is inefficient but currently required to get overlaps to un-overlap
+    setAllSectionPositions();
   }
   pin() {
     const displayOrder = this.parent.sectionTypes.filter((e) =>
@@ -686,22 +685,22 @@ async function webRegTermSelect() {
 }
 
 async function getCourseBin() {
-    return await webRegTermSelect()
-        .then((loggedIn) => {
-          if (!loggedIn) {
+  return await webRegTermSelect()
+      .then((loggedIn) => {
+        if (!loggedIn) {
           throw new Error('Error fetching CourseBin, ' +
-            'you are likely not logged in to my.usc.edu');
-          } else {
-            return fetch('https://webreg.usc.edu/Scheduler/Read', {method: 'POST'})
-                .then((response) => response.json())
-                .then((data) => {
-                  for (let i = 0; i<data.Data.length; i++) {
-                    parseCourseBinElement(data.Data[i]);
-                  }
-                  return scheduleFromParsedBin(data.Data);
-                });
-          }
-        });
+          'you are likely not logged in to my.usc.edu');
+        } else {
+          return fetch('https://webreg.usc.edu/Scheduler/Read', {method: 'POST'})
+              .then((response) => response.json())
+              .then((data) => {
+                for (let i = 0; i<data.Data.length; i++) {
+                  parseCourseBinElement(data.Data[i]);
+                }
+                return scheduleFromParsedBin(data.Data);
+              });
+        }
+      });
 }
 
 // Takes in raw courseBin data from USC and extracts info
@@ -995,6 +994,7 @@ function setAllSectionPositions() {
   for (let x = 0; x<calSections.length; x++) {
     calSections[x].position();
   }
+  fitCalSectionOverlaps();
 }
 
 function positionDaySection(
@@ -1036,6 +1036,73 @@ function positionDaySection(
   div.style.width = (0.95*cellRect.width).toString() + 'px';
 }
 
+function fitCalSectionOverlaps() {
+  const divs = [];
+  calSections.forEach((section) => {
+    section.daySections.forEach((daySection) => {
+      divs.push(daySection);
+    });
+  });
+  fitOverlaps(divs);
+}
+
+function fitOverlaps(divs) {
+  divs.forEach((div) => {
+    delete div.widthDenom;
+  });
+  divs.forEach((div) => {
+    // Holds all divs that overlap with current div
+    let overlaps = [];
+
+    // Sets a base width denominator of 1 for this div, if one is not set
+    if (typeof div.widthDenom == 'undefined') {
+      div.widthDenom = 1;
+    }
+    const origWidth = parseFloat(div.sectionDiv.style.width);
+
+    divs.forEach((section2) => {
+      // Skips checking for overlaps of a section with itself
+      if (div == section2) return;
+      // Sets a base width denominator of 1 for this div, if one is not set
+      if (typeof section2.widthDenom == 'undefined') {
+        section2.widthDenom = 1;
+      }
+      // Checks if div2 overlaps with div1
+      // and if so adds 2 to the overlap array
+      if (rectOverlap(div.sectionDiv, section2.sectionDiv)) {
+        overlaps.push(section2);
+      }
+    });
+
+    // Adjusts width and left-offset of given div, based on widthDenom value
+    function adjustWidth(adjustSect) {
+      adjustSect.widthDenom++;
+      adjustSect.sectionDiv.style.width =
+          (origWidth/adjustSect.widthDenom).toString() + 'px';
+      if (adjustSect.sectionDiv != div.sectionDiv) {
+        adjustSect.sectionDiv.style.left =
+            parseFloat(adjustSect.sectionDiv.style.left) +
+            parseFloat(adjustSect.sectionDiv.style.width) + 1 + 'px';
+      }
+    }
+    // Decreases width of overlapping sections and pushes them to the right
+    // until no overlaps remain (for this iteration of section)
+    while (overlaps.length>0) {
+      const temp = overlaps;
+      overlaps = [];
+      adjustWidth(div);
+      temp.forEach((tempSect) => {
+        if (tempSect.widthDenom<div.widthDenom) {
+          adjustWidth(tempSect);
+        }
+        if (rectOverlap(div.sectionDiv, tempSect.sectionDiv)) {
+          overlaps.push(tempSect);
+        }
+      });
+    }
+  });
+}
+
 function findCalSectionByID(id) {
   for (let i=0; i<calSections.length; i++) {
     if (calSections[i].id == id) {
@@ -1068,14 +1135,14 @@ function calDragEnter(section) {
   section.daySections.forEach((daySection) => {
     if (typeof daySection.sectionDiv == 'object') {
       daySection.sectionDiv.classList.add('dragover');
-  }
+    }
   });
 }
 function calDragLeave(section) {
   section.daySections.forEach((daySection) => {
     if (typeof daySection.sectionDiv == 'object') {
       daySection.sectionDiv.classList.remove('dragover');
-  }
+    }
   });
 }
 function calDrop(orig, event) {
@@ -1249,72 +1316,20 @@ function showPossiblePositions(course, type, current) {
           unique[i].daySections[0].day);
     }
   }
+
   // If sections overlap but not perfectly, scales down their width
   // to fit them usably side by side
-  for (let i=0; i<unique.length; i++) {
-    // Holds all divs that overlap with unique[i]
-    let overlaps = [];
-    // Adjusts for div variable placement based on whether this unique time
-    // has multiple sections or just one
-    let div;
-    if (unique[i].daySections.length==1) {
-      div = unique[i].daySections[0].sectionDiv;
+  const divs = [];
+  // Adjusts for div variable placement based on whether this unique time
+  // has multiple sections or just one
+  unique.forEach((element) => {
+    if (element.daySections.length==1) {
+      divs.push({sectionDiv: element.daySections[0].sectionDiv});
     } else {
-      div = unique[i].div;
+      divs.push({sectionDiv: element.div});
     }
-    // Sets a base width denominator of 1 for this div, if one is not set
-    if (typeof unique[i].widthDenom == 'undefined') {
-      unique[i].widthDenom = 1;
-    }
-    const origWidth = parseFloat(div.style.width);
-    for (let j=0; j<unique.length; j++) {
-      // Skips checking for overlaps of a section with itself
-      if (unique[i]==unique[j]) {
-        continue;
-      }
-      // Adjusts for div variable placement based on whether this unique time
-      // has multiple sections or just one
-      let div2;
-      if (unique[j].daySections.length==1) {
-        div2 = unique[j].daySections[0].sectionDiv;
-      } else {
-        div2 = unique[j].div;
-      }
-      // Sets a base width denominator of 1 for this div, if one is not set
-      if (typeof unique[j].widthDenom == 'undefined') {
-        unique[j].widthDenom = 1;
-      }
-      // Checks if div j overlaps with div i
-      // and if so adds j to the overlap array
-      if (rectOverlap(div, div2)) {
-        overlaps.push({div: div2, unique: unique[j]});
-      }
-    }
-    // Adjusts width and left-offset of given div, based on widthDenom value
-    function adjustWidth(adjustDiv, unique) {
-      unique.widthDenom++;
-      adjustDiv.style.width = (origWidth/unique.widthDenom).toString() + 'px';
-      if (adjustDiv != div) {
-        adjustDiv.style.left = parseFloat(adjustDiv.style.left) +
-                parseFloat(adjustDiv.style.width) + 1 + 'px';
-      }
-    }
-    // Decreases width of overlapping sections and pushes them to the right
-    // until no overlaps remain (for this iteration of unique[i])
-    while (overlaps.length>0) {
-      const temp = overlaps;
-      overlaps = [];
-      adjustWidth(div, unique[i]);
-      for (let j=0; j<temp.length; j++) {
-        if (temp[j].unique.widthDenom<unique[i].widthDenom) {
-          adjustWidth(temp[j].div, temp[j].unique);
-        }
-        if (rectOverlap(div, temp[j].div)) {
-          overlaps.push(temp[j]);
-        }
-      }
-    }
-  }
+  });
+  fitOverlaps(divs);
 }
 
 
@@ -1369,26 +1384,25 @@ function colorClasses() {
 function crossOutConflicts() {
   for (let i=0; i<classes.length; i++) {
     for (let j=0; j<classes[i].SectionData.length; j++) {
-      if (classes[i].SectionData[j].scheduled==false) {
-        const slashIconArr = classes[i].SectionData[j].sectionDiv
-            .getElementsByClassName('fa-slash');
-        if (classes[i].SectionData[j].conflicts().length>0) {
-          // Adds a slash to visually cross out the add section icon
-          // if the section conflicts with a scheduled section
-          // (and such a slash hasn't already been added)
-          if (slashIconArr.length==0) {
-            const slash = addElement('i', 'fa-solid fa-slash',
-                classes[i].SectionData[j].sectionDiv
-                    .getElementsByClassName('fa-plus')[0], '');
+      const slashIconArr = classes[i].SectionData[j].sectionDiv
+          .getElementsByClassName('fa-slash');
+      if (classes[i].SectionData[j].conflicts().length>0 &&
+          !classes[i].SectionData[j].scheduled) {
+        // Adds a slash to visually cross out the add section icon
+        // if the section conflicts with a scheduled section
+        // (and such a slash hasn't already been added)
+        if (slashIconArr.length==0) {
+          const slash = addElement('i', 'fa-solid fa-slash',
+              classes[i].SectionData[j].sectionDiv
+                  .getElementsByClassName('fa-plus')[0], '');
 
-            slash.setAttribute('title',
-                'This section conflicts with an already scheduled section',
-            );
-          }
-        } else {
-          if (slashIconArr.length>0) {
-            slashIconArr[0].remove();
-          }
+          slash.setAttribute('title',
+              'This section conflicts with an already scheduled section',
+          );
+        }
+      } else {
+        if (slashIconArr.length>0) {
+          slashIconArr[0].remove();
         }
       }
     }
