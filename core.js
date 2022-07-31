@@ -649,7 +649,6 @@ class Section {
 
 function displayLoadingStatus(done) {
   const loading = document.getElementById('loadingOverlay');
-  console.log(loading);
   if (!done) {
     loading.style.display = 'block';
   } else {
@@ -687,13 +686,11 @@ async function webRegTermSelect() {
 }
 
 async function getCourseBin() {
-  try {
     return await webRegTermSelect()
         .then((loggedIn) => {
           if (!loggedIn) {
-            alert('Error fetching coursebin, ' +
+          throw new Error('Error fetching CourseBin, ' +
             'you are likely not logged in to my.usc.edu');
-            throw new Error('Error fetching coursebin');
           } else {
             return fetch('https://webreg.usc.edu/Scheduler/Read', {method: 'POST'})
                 .then((response) => response.json())
@@ -705,10 +702,6 @@ async function getCourseBin() {
                 });
           }
         });
-  } catch (error) {
-    console.error(error);
-    throw new Error('Error fetching courseBin');
-  }
 }
 
 // Takes in raw courseBin data from USC and extracts info
@@ -721,13 +714,13 @@ function parseCourseBinElement(element) {
   element.code = element.Title.slice(0, paren1 - 1);
   element.id = element.Title.slice(paren1 + 1, paren2);
 
-  const registered = element.Scheduled.slice(1);
+  const registered = element.Scheduled.slice(1, 2);
   if (registered == 'N') {
     element.registered = false;
   } else if (registered == 'Y') {
     element.registered = true;
   } else {
-    throw new Error('courseBin data is not in the expected format');
+    throw new Error('CourseBin data is not in the expected format');
   }
 }
 
@@ -752,6 +745,51 @@ function scheduleFromParsedBin(courseBin) {
     }
   }
   return {sections: sections};
+}
+
+// Adds a section to the USC CourseBin. It will be scheduled by default
+async function addToCourseBin(dept, code, id) {
+  const baseUrl = 'https://webreg.usc.edu/myCoursebin/SubmitSection';
+  const selection = new FormData();
+  selection.append('submit', 'Add to myCourseBin');
+  selection.append('department', dept);
+  selection.append('courseid', code);
+  selection.append('sectionid', id);
+  selection.append('grdoptchgflg', 'Y');
+  selection.append('conccourseid', '');
+
+  return await fetch(baseUrl, {method: 'POST', body: selection})
+      .then((response) => response.text())
+      .then((data) => {
+        if (data == 'Added to Course Bin') {
+          return true;
+        } else if (data == 'Error Adding to Course Bin') {
+          // This occurs if the section is already in the CourseBin
+          return false;
+        } else {
+          throw new Error('Could not add to CourseBin');
+        }
+      });
+}
+
+// Schedules a section that is already in the USC CourseBin
+async function scheduleCourseBin(id) {
+  const baseUrl = 'https://webreg.usc.edu/myCoursebin/SchdUnschRmv?act=Sched&section=';
+  const url = baseUrl + id;
+
+  return await fetch(url);
+  // Unfortunately USC servers do not return a meaningful response
+  // for this request
+}
+
+// Unschedules a section that is already in the USC CourseBin
+async function unscheduleCourseBin(id) {
+  const baseUrl = 'https://webreg.usc.edu/myCoursebin/SchdUnschRmv?act=UnSched&section=';
+  const url = baseUrl + id;
+
+  return await fetch(url);
+  // Unfortunately USC servers do not return a meaningful response
+  // for this request
 }
 
 function deptFromCode(code) {
@@ -1015,13 +1053,9 @@ function calDragStart(course, type, current, event) {
       current.daySections[i].sectionDiv.style.opacity = '0.5';
     }
   }, '10');
-  // showPossiblePositions(course, type, current);
-  // //Make the section being dragged translucent
-  // for(let i=0;i<current.daySections.length;i++){
-  //     current.daySections[i].sectionDiv.style.opacity = "0.5";
-  // }
   event.dataTransfer.setData('text/plain', current.id);
 }
+
 function calDragEnd(current) {
   unshowPossible();
   // Make the section being dragged non-translucent again
@@ -1031,14 +1065,18 @@ function calDragEnd(current) {
 }
 // For possible sections
 function calDragEnter(section) {
-  for (let i=0; i<section.daySections.length; i++) {
-    section.daySections[i].sectionDiv.classList.add('dragover');
+  section.daySections.forEach((daySection) => {
+    if (typeof daySection.sectionDiv == 'object') {
+      daySection.sectionDiv.classList.add('dragover');
   }
+  });
 }
 function calDragLeave(section) {
-  for (let i=0; i<section.daySections.length; i++) {
-    section.daySections[i].sectionDiv.classList.remove('dragover');
+  section.daySections.forEach((daySection) => {
+    if (typeof daySection.sectionDiv == 'object') {
+      daySection.sectionDiv.classList.remove('dragover');
   }
+  });
 }
 function calDrop(orig, event) {
   const dropSection =
@@ -1653,6 +1691,7 @@ async function loadCourseBin() {
     handleUpdatedRegInfo(courseBinSched);
   } catch (error) {
     console.error(error);
+    alert(error);
   }
   displayLoadingStatus(true);
 }
@@ -1672,4 +1711,40 @@ function handleUpdatedRegInfo(courseBinSched) {
 document.getElementById('loadCourseBin').addEventListener(
     'click', function() {
       loadCourseBin();
+    });
+
+async function pushToCourseBin() {
+  displayLoadingStatus(false);
+
+  const courseBinSched = await getCourseBin();
+
+  for (section of courseBinSched.sections) {
+    // If the section in the CourseBin
+    // is not in the current schedule being pushed
+    if (calSections.filter((e) => e.id == section.id).length == 0) {
+      await unscheduleCourseBin(section.id);
+    }
+  }
+
+  for (section of calSections) {
+    // If the section is not already present in the CourseBin schedule
+    if (courseBinSched.sections.filter((e) => e.id == section.id).length == 0) {
+      // Attempt to add the section to CourseBin
+      // If it is not in the CourseBin and is successfully added
+      // (and auto-scheduled), true will be returned.
+      // If it is already in the CourseBin but not scheduled, false will
+      // be returned, and the inside of the if block will schedule it.
+      const scheduled =
+          await addToCourseBin(section.prefix, section.code, section.id);
+      if (!scheduled) {
+        await scheduleCourseBin(section.id);
+      }
+    }
+  }
+  displayLoadingStatus(true);
+}
+
+document.getElementById('pushCourseBin').addEventListener(
+    'click', function() {
+      pushToCourseBin();
     });
