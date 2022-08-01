@@ -203,7 +203,7 @@ but it might have benefits */
 .searchSection .registeredIcon:hover {
     background: none;
 }
-.searchSection .registeredIcon.fa-clipboard {
+.fa-clipboard {
     color: #00000040;
 }
 .searchSection .fa-thumbtack {
@@ -390,7 +390,7 @@ but it might have benefits */
     font-size: 12px;
     overflow: hidden;
 }
-.calsection p {
+.calsection div {
     font-size: inherit;
 }
 .calsection button {
@@ -408,6 +408,9 @@ but it might have benefits */
     position: absolute;
     bottom: 3px;
     right: 3px;
+}
+.calnumreg .registeredIcon {
+    margin-left: 2px;
 }
 .calpossible {
     background: pink;

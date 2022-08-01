@@ -477,8 +477,19 @@ class Section {
       unschedButton.push(addElement(
           'button', 'fa-solid fa-xmark', sectionDiv, ''));
       // Add number currently registered to calendar div
-      addElement('p', 'calnumreg', sectionDiv, this.number_registered + '/' +
-              this.spaces_available);
+      const calnumreg =
+          addElement('div', 'calnumreg', sectionDiv, this.number_registered +
+          '/' + this.spaces_available);
+      // Add registration status
+      const registeredIcon = addElement(
+          'i', 'fa-solid registeredIcon', calnumreg, '');
+      if (this.registered) {
+        registeredIcon.classList.add('fa-clipboard-check');
+        registeredIcon.title = 'This section is registered';
+      } else {
+        registeredIcon.classList.add('fa-clipboard');
+        registeredIcon.title = 'This section is not registered';
+      }
 
       this.daySections[i].sectionDiv = sectionDiv;
     }
@@ -642,6 +653,27 @@ class Section {
       registeredIcon.classList.add('fa-clipboard');
       registeredIcon.classList.remove('fa-clipboard-check');
       registeredIcon.title = 'This section is not registered';
+    }
+  }
+}
+
+// Deep copies a Section object (inputSection) onto sectionToChange
+// but skips some properties. This is currently only used in updateBasicInfo()
+// so only properties relevant in code after updateBasicInfo()
+// and before the page refresh are skipped
+// Notably, daySections will lose its references to divs on the calendar
+// but it doesn't matter if just used in updating info and refreshing
+function mediumCopy(sectionToChange, inputSection) {
+  const skip = ['parent', 'scheduled', 'registered', 'pinned', 'sectionDiv'];
+
+  for (const property in inputSection) {
+    // Skip if property is from prototype
+    if (!inputSection.hasOwnProperty(property)) continue;
+
+    // Skip if the original property needs to be maintained
+    // for later code to work
+    if (!skip.includes(property)) {
+      sectionToChange[property] = inputSection[property];
     }
   }
 }
@@ -1479,15 +1511,7 @@ async function updateBasicInfo(term) {
                     const matches = currentCourse.SectionData.filter(
                         (e) => e.id === classes[j].SectionData[l].id);
                     if (matches.length==1) {
-                      const scheduled = classes[j].SectionData[l].scheduled;
-                      const registered = classes[j].SectionData[l].registered;
-                      const pinned = classes[j].SectionData[l].pinned;
-                      const sectionDiv = classes[j].SectionData[l].sectionDiv;
-                      classes[j].SectionData[l] = matches[0];
-                      classes[j].SectionData[l].scheduled = scheduled;
-                      classes[j].SectionData[l].registered = registered;
-                      classes[j].SectionData[l].pinned = pinned;
-                      classes[j].SectionData[l].sectionDiv = sectionDiv;
+                      mediumCopy(classes[j].SectionData[l], matches[0]);
 
                     // If the section no longer has a match in
                     // USC schedule of classes, add it to the
@@ -1761,4 +1785,9 @@ async function pushToCourseBin() {
 document.getElementById('pushCourseBin').addEventListener(
     'click', function() {
       pushToCourseBin();
+    });
+
+document.getElementById('regSchedule').addEventListener(
+    'click', function() {
+      window.open('https://webreg.usc.edu/Register');
     });
