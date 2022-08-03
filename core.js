@@ -1399,16 +1399,17 @@ function unshowPossible() {
 // Color each distinct class (not section) on the calendar a different color
 function colorClasses() {
   const colors = [
-    '#fcd444',
-    '#fc4444',
-    '#029658',
-    '#2f64c1',
+    '#1abc9c',
+    '#5bc0de',
     '#b178aa',
     '#fc6404',
+    '#fcd444',
+    '#fc4444',
     '#f978aa',
     '#8cc43c',
-    '#5bc0de',
-    '#1abc9c'];
+    '#2f64c1',
+    '#029658',
+  ];
 
   // Finds how many distinct classes are scheduled
   schedClasses = [];

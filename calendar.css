@@ -350,7 +350,7 @@ but it might have benefits */
     font-weight: 500;
 }
 .calendar { 
-    flex: auto;
+    flex: 1 1;
     align-self: auto;
     display: flex;
     flex-direction: column;
@@ -422,6 +422,29 @@ but it might have benefits */
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    background: #efefef;
+    /* background: white; */
+    border-top: 1px solid rgb(163 163 163);
+    /* border-left: 1px solid rgb(163 163 163); */
+}
+::-webkit-scrollbar {
+    background: transparent;
+    width: 1em;
+}
+body::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+::-webkit-scrollbar-thumb {
+    background-color: darkgrey;
+    border-radius: 7px;
+    border-bottom: 2px solid #efefef;
+    border-left: 2px solid #efefef;
+    border-right: 2px solid #efefef;
+    border-top: 2px solid #efefef;
+    min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(139, 139, 139);
 }
 #scrollcal {
     position: relative;
@@ -495,14 +518,19 @@ but it might have benefits */
     border-color: separate;
     border-spacing:0;
     width: 100%;
-    background-color: white;
+    /* background-color: white; */
+    background: none;
     line-height: 5px;
     color: black;
+    table-layout: fixed;
 }
 .thead {
     position: sticky;
     top: 0;
     z-index: 1;
+}
+.thead .cal-day {
+    border-top: none;
 }
 .thead .cal-time {
     border-bottom-width: 0px;
@@ -542,11 +570,16 @@ but it might have benefits */
     vertical-align: top;
 }
 .tg .cal-time {
-    width: 50px;
-    text-align: left;
-    vertical-align: top;
+    width: 45px;
+    text-align: right;
+    vertical-align: middle;
     font-size: 11px;
-    border-top-style: solid;
+    border: none;
+}
+.tg .cal-time-first {
+    padding-top: 0px;
+    position: relative;
+    top: -7px;
 }
 .tg .cal-00 {
     border-top-style: solid;
