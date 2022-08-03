@@ -638,21 +638,35 @@ class Section {
     this.sectionDiv.animate(scaleY1, 100);
   }
   setRegInfo(registered) {
-    const registeredIcon =
-        this.sectionDiv.getElementsByClassName('registeredIcon')[0];
+    // Creates a list of all icons indicating this section's registration status
+    // which will all have to be updated based on the new status
+    const registeredIcons = [];
+    registeredIcons.push(
+        this.sectionDiv.getElementsByClassName('registeredIcon')[0]);
+    for (const daySection of this.daySections) {
+      if (typeof daySection.sectionDiv == 'object') {
+        registeredIcons.push(
+            daySection.sectionDiv.getElementsByClassName('registeredIcon')[0]);
+      }
+    }
+
     if (registered) {
       this.registered = true;
-      registeredIcon.classList.add('fa-clipboard-check');
-      registeredIcon.classList.remove('fa-clipboard');
-      registeredIcon.title = 'This section is registered';
+      for (const registeredIcon of registeredIcons) {
+        registeredIcon.classList.add('fa-clipboard-check');
+        registeredIcon.classList.remove('fa-clipboard');
+        registeredIcon.title = 'This section is registered';
+      }
       if (!this.pinned) {
         this.pin();
       }
     } else {
       this.registered = false;
-      registeredIcon.classList.add('fa-clipboard');
-      registeredIcon.classList.remove('fa-clipboard-check');
-      registeredIcon.title = 'This section is not registered';
+      for (const registeredIcon of registeredIcons) {
+        registeredIcon.classList.add('fa-clipboard');
+        registeredIcon.classList.remove('fa-clipboard-check');
+        registeredIcon.title = 'This section is not registered';
+      }
     }
   }
 }
@@ -681,20 +695,20 @@ function mediumCopy(sectionToChange, inputSection) {
 function displayLoadingStatus(done) {
   const loading = document.getElementById('loadingOverlay');
   if (!done) {
-    loading.style.display = 'block';
+    loading.style.display = 'flex';
   } else {
     loading.style.display = 'none';
   }
 }
 
-async function webRegTermSelect() {
+async function webRegTermSelect(term) {
   try {
     return await fetch('https://my.usc.edu/portal/oasis/webregbridge.php', {method: 'GET'})
         .then(async function(response1) {
           console.log(response1);
 
           const termSelectURL = 'https://webreg.usc.edu/Terms/termSelect?term=' +
-          encodeURIComponent(term);
+          encodeURIComponent(term.number);
           return await fetch(termSelectURL, {method: 'GET'})
               .then((response) => {
                 console.log(response);
@@ -717,7 +731,7 @@ async function webRegTermSelect() {
 }
 
 async function getCourseBin() {
-  return await webRegTermSelect()
+  return await webRegTermSelect(term)
       .then((loggedIn) => {
         if (!loggedIn) {
           throw new Error('Error fetching CourseBin, ' +
@@ -832,7 +846,7 @@ function searchDept(dept, term) {
   document.getElementById('loading').style.display = 'block';
 
   const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-    encodeURIComponent(dept) + '/' + encodeURIComponent(term);
+    encodeURIComponent(dept) + '/' + encodeURIComponent(term.number);
 
   fetch(url)
       .then((response) => response.json())
@@ -843,7 +857,7 @@ function searchDept(dept, term) {
 async function searchAddClass(dept, term, code) {
   displayLoadingStatus(false);
   const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-    encodeURIComponent(dept) + '/' + encodeURIComponent(term);
+    encodeURIComponent(dept) + '/' + encodeURIComponent(term.number);
   return await fetch(url)
       .then((response) => response.json())
       .then((data) => {
@@ -946,7 +960,7 @@ async function saveMyClasses() {
       noncircular[i].SectionData[j].parent = null;
     }
   }
-  await chrome.storage.local.set({'classes': noncircular});
+  await saveData('classes', noncircular, term);
 }
 
 function saveSchedule(name) {
@@ -964,7 +978,7 @@ function saveSchedule(name) {
       if (confirm(
           'A saved schedule with that name already exists, overwrite it?')) {
         schedules[i].sections = sections;
-        chrome.storage.local.set({'schedules': schedules});
+        saveData('schedules', schedules, term);
         // Displays name of saved schedule in dropdown bar
         document.getElementById('schedinput').value = name;
       }
@@ -974,7 +988,7 @@ function saveSchedule(name) {
   // If a schedule with that name doesn't exist, this will be reached
   // and the new schedule will be pushed
   schedules.push({name: name, sections: sections});
-  chrome.storage.local.set({'schedules': schedules});
+  saveData('schedules', schedules, term);
   // Update schedule list dropdown
   createScheduleList();
 }
@@ -1465,7 +1479,7 @@ async function updateInfo(term) {
         lastRefresh.toLocaleTimeString(
             'en-US', {hour: '2-digit', minute: '2-digit'});
 
-    await chrome.storage.local.set({'lastRefresh': lastRefresh});
+    await saveData('lastRefresh', lastRefresh, term);
     displayLoadingStatus(true);
   } catch (error) {
     alert(error);
@@ -1486,7 +1500,7 @@ async function updateBasicInfo(term) {
   // Pull info for each department, and update relevant classes in myClasses
   for (let i=0; i<depts.length; i++) {
     const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-          encodeURIComponent(depts[i]) + '/' + encodeURIComponent(term);
+          encodeURIComponent(depts[i]) + '/' + encodeURIComponent(term.number);
 
     await fetch(url)
         .then((response) => response.json())
@@ -1597,37 +1611,63 @@ while (tableBottom.y<windowHeight) {
 document.getElementsByClassName('cal-day')[21].scrollIntoView(true);
 
 const calSections = [];
-chrome.storage.local.set({'term': '20223'});
 let term;
 let classes = [];
 let schedules = [];
 let lastRefresh;
 chrome.storage.local.get(
     ['term', 'classes', 'schedules', 'lastRefresh'], (data) => {
-      term = data.term;
-      lastRefresh = data.lastRefresh;
-      if (typeof data.classes != 'undefined') {
-        for (let i = 0; i<data.classes.length; i++) {
-          classes.push(new Course(data.classes[i]));
+      if (typeof data.term == 'undefined') {
+        termSelect();
+      } else {
+        term = data.term;
+        document.getElementById('termButtonText').innerHTML = term.name;
+
+        if (typeof data.classes != 'undefined') {
+          let termClasses =
+              data.classes.filter((e) => e.term.number == term.number);
+          if (termClasses.length == 1) {
+            termClasses = termClasses[0].classes;
+          } else {
+            classes = [];
+          }
+          for (let i = 0; i<termClasses.length; i++) {
+            classes.push(new Course(termClasses[i]));
+          }
+        } else {
+          classes = [];
         }
-      } else {
-        classes = [];
-      }
-      if (typeof data.schedules != 'undefined') {
-        schedules = data.schedules;
-      } else {
-        schedules = [];
-      };
-      showMyClasses();
-      createScheduleList();
-      showAllScheduled();
-      // Show last time class info was refreshed
-      if (typeof lastRefresh == 'undefined') {
-        document.getElementById('last').innerHTML = 'Last: never';
-      } else {
-        document.getElementById('last').innerHTML = 'Last: ' + lastRefresh;
+        if (typeof data.schedules != 'undefined') {
+          schedules =
+              data.schedules.filter((e) => e.term.number == term.number);
+          if (schedules.length == 1) {
+            schedules = schedules[0].schedules;
+          } else {
+            schedules = [];
+          }
+        } else {
+          schedules = [];
+        };
+        showMyClasses();
+        createScheduleList();
+        showAllScheduled();
+        loginTest();
+        if (typeof data.lastRefresh != 'undefined') {
+          lastRefresh =
+              data.lastRefresh.filter((e) => e.term.number == term.number);
+          if (lastRefresh.length == 1) {
+            lastRefresh = lastRefresh[0].lastRefresh;
+          }
+        }
+        // Show last time class info was refreshed
+        if (typeof lastRefresh == 'undefined') {
+          document.getElementById('last').innerHTML = 'Last: never';
+        } else {
+          document.getElementById('last').innerHTML = 'Last: ' + lastRefresh;
+        }
       }
     });
+
 
 // Adds search listener to dept search box
 const input = document.getElementById('input');
@@ -1703,17 +1743,15 @@ function displayLoginStatus(status) {
 
 async function loginTest() {
   displayLoginStatus('loading');
-  webRegTermSelect();
+  webRegTermSelect(term);
 }
-
-loginTest();
 
 document.getElementById('login').addEventListener(
     'click', function() {
       window.open('https://my.usc.edu');
     });
 
-document.getElementById('termSelect').addEventListener(
+document.getElementById('loginStatus').addEventListener(
     'click', function() {
       loginTest();
     });
@@ -1791,3 +1829,115 @@ document.getElementById('regSchedule').addEventListener(
     'click', function() {
       window.open('https://webreg.usc.edu/Register');
     });
+
+// Finds all occurrences of a given substring and returns their indexes
+function indexesOf(string, substring) {
+  const matches = [];
+  let i = -1;
+  while ((i = string.indexOf(substring, i + 1)) >= 0) {
+    matches.push(i);
+  }
+  return matches;
+}
+
+async function termSelect() {
+  const overlay = document.getElementById('termSelect');
+  overlay.style.display = 'flex';
+  const spinner = overlay.getElementsByClassName('fa-spinner')[0];
+  spinner.style.display = 'block';
+  const termSelectLogin = document.getElementById('termSelectLogin');
+  termSelectLogin.style.display = 'none';
+
+  const terms = await fetch('https://my.usc.edu/portal/oasis/webregbridge.php', {method: 'GET'})
+      .then((response) => response.text())
+      .then((data) => {
+        if (data.includes('Your session has ended')) {
+          return false;
+        }
+        // Extracts current term names and numbers from webreg HTML
+        const terms = [];
+        const substring = '<li><a href="/Terms/termSelect?term=';
+        const indexes = indexesOf(data, substring);
+        for (let i = 0; i<indexes.length; i++) {
+          indexes[i] += substring.length;
+        }
+        indexes.forEach((index) => {
+          const begin = index;
+          while (data[index] != '"') {
+            index++;
+          }
+          const endNumber = index;
+          while (data[index] != '>') {
+            index++;
+          }
+          const beginName = index + 1;
+          while (data[index] != 'C') {
+            index++;
+          }
+          const end = index - 1;
+          terms.push({
+            number: data.slice(begin, endNumber),
+            name: data.slice(beginName, end),
+          });
+        });
+        return terms;
+      });
+
+  spinner.style.display = 'none';
+
+  if (!terms) {
+    termSelectLogin.style.display = 'block';
+  } else {
+    const termSelectOptions = document.getElementById('termSelectOptions');
+    termSelectOptions.innerHTML = '';
+    for (let i=0; i<terms.length; i++) {
+      const termButton =
+          addElement('button', '', termSelectOptions, terms[i].name);
+      termButton.addEventListener('click', function() {
+        chrome.storage.local.set({'term': terms[i]})
+            .then(location.reload());
+      });
+    }
+  }
+  // TODO: Handle errors
+}
+
+// Make the refresh button in termSelect() window (upon failure to login)
+// cause termSelect() to start again/refresh
+document.getElementById('termSelectLogin')
+    .getElementsByClassName('fa-arrows-rotate')[0]
+    .addEventListener('click', function() {
+      termSelect();
+    });
+
+document.getElementById('termButton')
+    .addEventListener('click', function() {
+      termSelect();
+    });
+
+// Saves a value/object to chrome local storage under the given name
+// including the currently used term
+async function saveData(name, value, term) {
+  await chrome.storage.local.get(
+      [name], (data) => {
+        let existing = data[name];
+
+        if (typeof existing == 'undefined') {
+          existing = [{
+            term: {number: term.number},
+            [name]: value,
+          }];
+        } else {
+          const relevant = existing.filter((e) => e.term.number == term.number);
+          if (relevant.length == 1) {
+            relevant[0][name] = value;
+          } else {
+            existing.push({
+              term: {number: term.number},
+              [name]: value,
+            });
+          }
+        }
+        chrome.storage.local.set({[name]: existing});
+      });
+}

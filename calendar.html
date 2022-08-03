@@ -39,7 +39,7 @@
                     for requests to webreg to work
                     <button id="login">Log into my.usc.edu</button>
                     <div>
-                        <button id="termSelect">Test login status</button>
+                        Login status:
                         <i id="loginStatus" class='fa-solid fa-xmark'></i>
                     </div>
                     <button id="loadCourseBin">Load Webreg Schedule as Current Schedule</button>
@@ -51,6 +51,10 @@
             
             <div class="calendar">
                 <div class="caltop">
+                    <div id="termButton">
+                        <p id="termButtonText">Select Term</p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
                     <div class="saveloadsched">
                         <div class="dropdown">
                             <input type="text" id="schedinput" placeholder="Unsaved Schedule">
@@ -426,9 +430,24 @@
             </div>
             
         </div>
-        <div id="loadingOverlay">
+        <div id="loadingOverlay" class="backgroundOverlay">
             <div>
                 <i class="fa-solid fa-spinner"></i>
+            </div>
+        </div>
+        <div id="termSelect" class="backgroundOverlay">
+            <div>
+                <p id="termSelectTitle">Select Term</p>
+                <div id="termSelectInner">
+                    <i class="fa-solid fa-spinner"></i>
+                    <div id="termSelectLogin">
+                        You must be logged into <a href="https://my.usc.edu" target="_blank" rel="noopener noreferrer">my.usc.edu</a> to view possible terms
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </div>
+                    <div id="termSelectOptions">
+
+                    </div>
+                </div>
             </div>
         </div>
           <script src="core.js"></script>
