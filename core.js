@@ -964,6 +964,10 @@ async function saveMyClasses() {
 }
 
 function saveSchedule(name) {
+  if (name == '') {
+    alert('Your schedule must have a name');
+    return;
+  }
   const sections = [];
   for (let i=0; i<calSections.length; i++) {
     const section = {};
@@ -1078,7 +1082,9 @@ function positionDaySection(
   div.style.top = top.toString() + 'px';
   div.style.height = height.toString() + 'px';
 
-  div.style.left = (cellRect.x - timeRect.x).toString() + 'px';
+  // Subtracting 0.75 usually causes the div to be flush with the
+  // underlying day border at typical resolutions
+  div.style.left = (cellRect.x - timeRect.x -0.75).toString() + 'px';
   div.style.width = (0.95*cellRect.width).toString() + 'px';
 }
 
@@ -1684,8 +1690,8 @@ const button = document.getElementById('scheddropdownbutton');
 button.addEventListener('click', function() {
   toggleShow(document.getElementById('schedinput').nextElementSibling);
   // Toggles button appearance to either up or down arrow
-  button.classList.toggle('fa-caret-down');
-  button.classList.toggle('fa-caret-up');
+  button.classList.toggle('fa-chevron-down');
+  button.classList.toggle('fa-chevron-up');
 });
 
 // Add save schedule functionality to "save schedule" button
@@ -1849,6 +1855,10 @@ async function termSelect() {
   const termSelectLogin = document.getElementById('termSelectLogin');
   termSelectLogin.style.display = 'none';
 
+  if (typeof term != 'undefined') {
+    overlay.getElementsByClassName('fa-xmark')[0].style.display = 'block';
+  }
+
   const terms = await fetch('https://my.usc.edu/portal/oasis/webregbridge.php', {method: 'GET'})
       .then((response) => response.text())
       .then((data) => {
@@ -1909,6 +1919,12 @@ document.getElementById('termSelectLogin')
     .getElementsByClassName('fa-arrows-rotate')[0]
     .addEventListener('click', function() {
       termSelect();
+    });
+
+document.getElementById('termSelect')
+    .getElementsByClassName('fa-xmark')[0]
+    .addEventListener('click', function() {
+      document.getElementById('termSelect').style.display = 'none';
     });
 
 document.getElementById('termButton')

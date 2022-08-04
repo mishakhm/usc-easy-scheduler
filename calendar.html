@@ -38,10 +38,6 @@
                     you just need to be logged in in this browser session
                     for requests to webreg to work
                     <button id="login">Log into my.usc.edu</button>
-                    <div>
-                        Login status:
-                        <i id="loginStatus" class='fa-solid fa-xmark'></i>
-                    </div>
                     <button id="loadCourseBin">Load Webreg Schedule as Current Schedule</button>
                     <button id="pushCourseBin">Push Current Schedule to CourseBin</button>
                     <button id="regSchedule">Register CourseBin</button>
@@ -51,18 +47,22 @@
             
             <div class="calendar">
                 <div class="caltop">
-                    <div id="termButton">
+                    <div class="loginStatusDiv">
+                        Login status:
+                        <i id="loginStatus" class='fa-solid fa-xmark'></i>
+                    </div>
+                    <button id="termButton">
                         <p id="termButtonText">Select Term</p>
                         <i class="fa-solid fa-chevron-down"></i>
-                    </div>
+                    </button>
                     <div class="saveloadsched">
                         <div class="dropdown">
-                            <input type="text" id="schedinput" placeholder="Unsaved Schedule">
+                            <input type="text" id="schedinput" placeholder="Untitled Schedule">
                             <div id="scheddropdown">
                             </div>
                         </div>
-                        <button id="scheddropdownbutton" class="fa-solid fa-caret-down"></button>
-                        <button id="savesched">Save schedule</button>
+                        <button id="savesched" class="fa-solid fa-floppy-disk"></button>
+                        <button id="scheddropdownbutton" class="fa-solid fa-chevron-down"></button>
                     </div>
                 </div>
                 <div class="scrollcalcontainer">
@@ -82,7 +82,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                <td class="cal-time cal-time-first">5:00 AM</td>
+                                <td class="cal-time cal-time-first">5 AM</td>
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 <td class="cal-weekday cal-day cal-00"></td>
                                 <td class="cal-weekday cal-day cal-00"></td>
@@ -92,7 +92,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">6:00 AM<br></td>
+                                <td class="cal-time" rowspan="2">6 AM<br></td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -111,7 +111,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">7:00 AM</td>
+                                <td class="cal-time" rowspan="2">7 AM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -130,7 +130,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">8:00 AM</td>
+                                <td class="cal-time" rowspan="2">8 AM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -149,7 +149,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">9:00 AM</td>
+                                <td class="cal-time" rowspan="2">9 AM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -168,7 +168,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">10:00 AM</td>
+                                <td class="cal-time" rowspan="2">10 AM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -187,7 +187,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">11:00 AM</td>
+                                <td class="cal-time" rowspan="2">11 AM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -206,7 +206,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">12:00 PM</td>
+                                <td class="cal-time" rowspan="2">12 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -225,7 +225,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">1:00 PM</td>
+                                <td class="cal-time" rowspan="2">1 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -244,7 +244,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">2:00 PM</td>
+                                <td class="cal-time" rowspan="2">2 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -263,7 +263,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">3:00 PM</td>
+                                <td class="cal-time" rowspan="2">3 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -282,7 +282,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">4:00 PM</td>
+                                <td class="cal-time" rowspan="2">4 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -301,7 +301,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">5:00 PM</td>
+                                <td class="cal-time" rowspan="2">5 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -320,7 +320,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">6:00 PM</td>
+                                <td class="cal-time" rowspan="2">6 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -339,7 +339,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">7:00 PM</td>
+                                <td class="cal-time" rowspan="2">7 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -358,7 +358,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">8:00 PM</td>
+                                <td class="cal-time" rowspan="2">8 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -377,7 +377,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">9:00 PM</td>
+                                <td class="cal-time" rowspan="2">9 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -396,7 +396,7 @@
                                 <td class="cal-weekend cal-day cal-00"></td>
                                 </tr>
                                 <tr>
-                                <td class="cal-time" rowspan="2">10:00 PM</td>
+                                <td class="cal-time" rowspan="2">10 PM</td>
                                 <td class="cal-weekend cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
                                 <td class="cal-weekday cal-day cal-30"></td>
@@ -449,6 +449,7 @@
 
                     </div>
                 </div>
+                <i class="fa-solid fa-xmark"></i>
             </div>
         </div>
           <script src="core.js"></script>
