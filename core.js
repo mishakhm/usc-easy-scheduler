@@ -529,6 +529,7 @@ class Section {
     colorClasses();
     crossOutConflicts();
     fitCalSectionOverlaps();
+    showScheduleSaveStatus(false);
     return true;
   }
   // Properly positions the section's divs on calendar according to date/time
@@ -567,6 +568,7 @@ class Section {
     saveMyClasses();
     colorClasses();
     crossOutConflicts();
+    showScheduleSaveStatus(false);
     // This is inefficient but currently required to get overlaps to un-overlap
     setAllSectionPositions();
   }
@@ -842,55 +844,61 @@ function deptFromCode(code) {
   return code.slice(0, hyphen);
 }
 
-function searchDept(dept, term) {
+async function searchDept(dept, term) {
   document.getElementById('loading').style.display = 'block';
 
   const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
     encodeURIComponent(dept) + '/' + encodeURIComponent(term.number);
 
-  fetch(url)
-      .then((response) => response.json())
-      .then((data) => showSearchedCourses(data.OfferedCourses.course, dept));
+  return await fetch(url)
+      .then(async function(response) {
+        const response2 = response.clone();
+        return await response.text().then(async function(data) {
+          // If the department doesn't exist (user made a typo) USC API will
+          // respond with an error message html
+          // Return false if it doesn't exist, otherwise return the data as json
+          if (data.includes('ERROR')) {
+            return false;
+          } else {
+            return await response2.json();
+          }
+        });
+      });
 }
 
 // Searches for a class matching given dept and code, then adds it to myClasses
 async function searchAddClass(dept, term, code) {
   displayLoadingStatus(false);
-  const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-    encodeURIComponent(dept) + '/' + encodeURIComponent(term.number);
-  return await fetch(url)
-      .then((response) => response.json())
-      .then((data) => {
-        for (let i=0; i<data.OfferedCourses.course.length; i++) {
-          const currentCourse =
-              new Course(data.OfferedCourses.course[i].CourseData);
-          if (currentCourse.code == code) {
-            currentCourse.add();
-          }
-        };
-        displayLoadingStatus(true);
-      });
+  return await searchDept(dept, term).then((data) => {
+    if (data) {
+      for (let i=0; i<data.OfferedCourses.course.length; i++) {
+        const currentCourse =
+            new Course(data.OfferedCourses.course[i].CourseData);
+        if (currentCourse.code == code) {
+          currentCourse.add();
+        }
+      };
+      displayLoadingStatus(true);
+    } else {
+      alert('Error pulling info for: ' + code);
+      displayLoadingStatus(true);
+      throw new Error('Could not find a matching department');
+    }
+  });
 }
 
-function showSearchedCourses(searchedCourseList, dept) {
-  console.log(searchedCourseList); // For testing
-
-  // Clear search results
-  document.getElementById('searchResultsContainer').innerHTML = '';
-
-  for (let i = 0; i<searchedCourseList.length; i++) {
+function showSearchedCourses(data, dept) {
+  for (let i = 0; i<data.OfferedCourses.course.length; i++) {
     // Check that the course actually belongs in this search
     // (because USC's API will return all courses connected to a department,
     // even if they don't match the prefix
     // i.e. QBIO-401 will show up when searching for BISC courses
     // Webreg's own search only shows courses that match the prefix exactly)
-    if (searchedCourseList[i].CourseData.prefix == dept) {
-      new Course(searchedCourseList[i].CourseData).createHTML(
+    if (data.OfferedCourses.course[i].CourseData.prefix == dept) {
+      new Course(data.OfferedCourses.course[i].CourseData).createHTML(
           document.getElementById('searchResultsContainer'), 'search');
     }
   }
-  // Hide loading indicator now that search has successfully completed
-  document.getElementById('loading').style.display = 'none';
 }
 
 function addElement(type, className, appendTo, text) {
@@ -983,8 +991,7 @@ function saveSchedule(name) {
           'A saved schedule with that name already exists, overwrite it?')) {
         schedules[i].sections = sections;
         saveData('schedules', schedules, term);
-        // Displays name of saved schedule in dropdown bar
-        document.getElementById('schedinput').value = name;
+        showScheduleSaveStatus(true);
       }
       return;
     }
@@ -993,6 +1000,7 @@ function saveSchedule(name) {
   // and the new schedule will be pushed
   schedules.push({name: name, sections: sections});
   saveData('schedules', schedules, term);
+  showScheduleSaveStatus(true);
   // Update schedule list dropdown
   createScheduleList();
 }
@@ -1026,7 +1034,19 @@ function createScheduleList() {
       loadSchedule(schedules[i]);
       // Displays name of loaded schedule in dropdown bar
       document.getElementById('schedinput').value = schedules[i].name;
+      showScheduleSaveStatus(true);
     });
+  }
+}
+
+function showScheduleSaveStatus(saved) {
+  const saveSchedButton = document.getElementById('savesched');
+  if (saved) {
+    saveSchedButton.classList.add('fa-check');
+    saveSchedButton.classList.remove('fa-floppy-disk');
+  } else {
+    saveSchedButton.classList.remove('fa-check');
+    saveSchedButton.classList.add('fa-floppy-disk');
   }
 }
 
@@ -1506,63 +1526,64 @@ async function updateBasicInfo(term) {
   }
   // Pull info for each department, and update relevant classes in myClasses
   for (let i=0; i<depts.length; i++) {
-    const url = 'https://web-app.usc.edu/web/soc/api/classes/' +
-          encodeURIComponent(depts[i]) + '/' + encodeURIComponent(term.number);
+    try {
+      await searchDept(depts[i], term)
+          .then((data) => {
+            // Iterate through all classes in myClasses
+            for (let j=0; j<classes.length; j++) {
+              // Proceed if the current class is in this searched department
+              if (classes[j].prefix==depts[i]) {
+                // Iterate through all the classes returned by search
+                // and check if they are the same class as the current
+                // class from myClass to be updated
+                for (let k=0; k<data.OfferedCourses.course.length; k++) {
+                  const currentCourse = new Course(
+                      data.OfferedCourses.course[k].CourseData);
+                  if (classes[j].code == currentCourse.code) {
+                    const toDelete = [];
 
-    await fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-          // Iterate through all classes in myClasses
-          for (let j=0; j<classes.length; j++) {
-            // Proceed if the current class is in this searched department
-            if (classes[j].prefix==depts[i]) {
-              // Iterate through all the classes returned by search
-              // and check if they are the same class as the current
-              // class from myClass to be updated
-              for (let k=0; k<data.OfferedCourses.course.length; k++) {
-                const currentCourse = new Course(
-                    data.OfferedCourses.course[k].CourseData);
-                if (classes[j].code == currentCourse.code) {
-                  const toDelete = [];
+                    // Once class match is found, iterate through
+                    // each section and update it with the
+                    // corresponding section from search
+                    for (let l=0; l<classes[j].SectionData.length; l++) {
+                      const matches = currentCourse.SectionData.filter(
+                          (e) => e.id === classes[j].SectionData[l].id);
+                      if (matches.length==1) {
+                        mediumCopy(classes[j].SectionData[l], matches[0]);
 
-                  // Once class match is found, iterate through
-                  // each section and update it with the
-                  // corresponding section from search
-                  for (let l=0; l<classes[j].SectionData.length; l++) {
-                    const matches = currentCourse.SectionData.filter(
-                        (e) => e.id === classes[j].SectionData[l].id);
-                    if (matches.length==1) {
-                      mediumCopy(classes[j].SectionData[l], matches[0]);
-
-                    // If the section no longer has a match in
-                    // USC schedule of classes, add it to the
-                    // list of sections to be deleted
-                    } else if (matches.length==0) {
-                      toDelete.push(classes[j].SectionData[l]);
-                    } else {
-                      // TODO: Expand error catching for this
-                      alert('Error updating class info');
+                      // If the section no longer has a match in
+                      // USC schedule of classes, add it to the
+                      // list of sections to be deleted
+                      } else if (matches.length==0) {
+                        toDelete.push(classes[j].SectionData[l]);
+                      } else {
+                        throw new Error(
+                            'Unexpected class data received from USC');
+                      }
                     }
-                  }
-                  // Delete all sections queued for deletion
-                  for (let l=0; l<toDelete.length; l++) {
-                    classes[j].SectionData.splice(
-                        classes[j].SectionData.indexOf(
-                            toDelete[l]), 1);
-                  }
-                  // Add any new sections not previously present
-                  for (let l=0; l<currentCourse.SectionData.length; l++) {
-                    const matches = classes[j].SectionData.filter(
-                        (e) => e.id === currentCourse.SectionData[l].id);
-                    if (matches.length==0) {
-                      classes[j].SectionData.push(currentCourse.SectionData[l]);
+                    // Delete all sections queued for deletion
+                    for (let l=0; l<toDelete.length; l++) {
+                      classes[j].SectionData.splice(
+                          classes[j].SectionData.indexOf(
+                              toDelete[l]), 1);
+                    }
+                    // Add any new sections not previously present
+                    for (let l=0; l<currentCourse.SectionData.length; l++) {
+                      const matches = classes[j].SectionData.filter(
+                          (e) => e.id === currentCourse.SectionData[l].id);
+                      if (matches.length==0) {
+                        classes[j].SectionData.push(
+                            currentCourse.SectionData[l]);
+                      }
                     }
                   }
                 }
               }
             }
-          }
-        });
+          });
+    } catch (error) {
+      alert('Error updating info for ' + depts[i] + ' classes');
+    }
   }
 }
 
@@ -1678,17 +1699,36 @@ chrome.storage.local.get(
 
 // Adds search listener to dept search box
 const input = document.getElementById('input');
-input.addEventListener('keypress', function(event) {
+input.addEventListener('keypress', async function(event) {
   if (event.key === 'Enter') {
     event.preventDefault();
-    searchDept(event.target.value.toUpperCase(), term);
+    const dept = event.target.value.toUpperCase();
+    // Clear any previous search results
+    document.getElementById('searchResultsContainer').innerHTML = '';
+    try {
+      const success = await searchDept(dept, term);
+      if (success) {
+        showSearchedCourses(success, dept);
+      } else {
+        alert('Could not find classes matching that department, ' +
+        'please make sure it is spelled correctly');
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error);
+    }
+    // Hide loading indicator now that search has either completed or failed
+    document.getElementById('loading').style.display = 'none';
   }
 });
 
 // Makes it so that clicking the schedules dropdown button shows/hides dropdown
 const button = document.getElementById('scheddropdownbutton');
 button.addEventListener('click', function() {
-  toggleShow(document.getElementById('schedinput').nextElementSibling);
+  const schedinput = document.getElementById('schedinput');
+  toggleShow(schedinput.nextElementSibling);
+  schedinput.style.borderBottomLeftRadius =
+      schedinput.style.borderBottomLeftRadius == '' ? '0rem' : '';
   // Toggles button appearance to either up or down arrow
   button.classList.toggle('fa-chevron-down');
   button.classList.toggle('fa-chevron-up');
@@ -1698,6 +1738,12 @@ button.addEventListener('click', function() {
 // Takes the name of the new schedule from dropdown input box
 document.getElementById('savesched').addEventListener('click', function() {
   saveSchedule(document.getElementById('schedinput').value);
+});
+
+// Clear the saved indicator if the user changes the text inside
+// the save schedule bar
+document.getElementById('schedinput').addEventListener('keyup', function() {
+  showScheduleSaveStatus(false);
 });
 
 // Add update class info functionality to relevant button click

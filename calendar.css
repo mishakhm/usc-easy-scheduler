@@ -7,6 +7,8 @@
 :root {
     --main-bg-color: #efefef;
     /* --main-bg-color: #f9f9f9; */
+    /* --shadow: 0px 0px 2px 0px #aaaaaa; */
+    --shadow: none;
 }
 
 button {
@@ -14,12 +16,17 @@ button {
     border-radius: 0.25rem;
     background: white;
     user-select: none;
-    box-shadow: 0px 0px 3px 0px #aaaaaa;
+    box-shadow: var(--shadow);
     /* font-weight: 500; */
 }
 button:hover {
     background: #efefef;
     cursor: pointer;
+}
+
+input {
+    border-radius: 0.25rem;
+    border: 1px solid #767676;
 }
 
 .flex-container {         
@@ -426,37 +433,38 @@ but it might have benefits */
 }
 .saveloadsched button {
     height: 23px;
+    border: 1px solid #767676;
 }
 #schedinput {
     height: 19px;
-    border: 1px solid #767676;
-    border-right: none;
-    border-top-left-radius: 0.25rem;
-    border-bottom-left-radius: 0.25rem;
-    box-shadow: 0px 0px 3px 0px #aaaaaa;
+    border-top-right-radius: 0rem;
+    border-bottom-right-radius: 0rem;
+    box-shadow: var(--shadow);
 }
 #scheddropdown {
     display: none;
     user-select: none;
+    box-shadow: var(--shadow);
+    background: white;
+    border: 1px solid rgb(163 163 163);
+    margin-top: -1px;
 }
 #scheddropdownbutton {
-    border: 1px solid #767676;
     border-left: none;
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
 }
 #savesched {
     border-radius: 0px;
+    border-left: none;
 }
 .dropdown {
     z-index: 2;
 }
 .dropdown li {
-    background: white;
     color: black;
     list-style-type: none;
     padding: 3px;
-    border: black solid 1px;
 }
 .dropdown li:hover {
     background: lightgray;
@@ -467,9 +475,7 @@ but it might have benefits */
     flex-direction: column;
     overflow-y: auto;
     background: var(--main-bg-color);
-    /* background: white; */
     border-top: 1px solid rgb(163 163 163);
-    /* border-left: 1px solid rgb(163 163 163); */
 }
 ::-webkit-scrollbar {
     background: transparent;
@@ -563,7 +569,6 @@ body::-webkit-scrollbar-track {
     border-color: separate;
     border-spacing:0;
     width: 100%;
-    /* background-color: white; */
     background: none;
     line-height: 5px;
     color: black;
@@ -581,7 +586,7 @@ body::-webkit-scrollbar-track {
     border-bottom-width: 0px;
 }
 .tg td {
-    border-color:black;
+    border-color:rgb(163 163 163);
     border-right-style: solid;
     border-left-style: solid;
     border-top-style: solid;
@@ -589,16 +594,6 @@ body::-webkit-scrollbar-track {
     font-size: 14px;
     overflow: hidden;
     padding: 13px 5px;
-    word-break: normal;
-}
-.tg th {
-    border-color: black;
-    border-style: solid;
-    border-width: 1px;
-    font-size: 14px;
-    font-weight: normal;
-    overflow: hidden;
-    padding: 10px 5px;
     word-break: normal;
 }
 .tg .cal-weekend {
@@ -628,6 +623,7 @@ body::-webkit-scrollbar-track {
     border-top-style: solid;
 }
 .tg .cal-30 {
-    border-top-style: dashed;
-    border-top-color: #b1b1b1;
+    /* border-top-style: dashed;
+    border-top-color: #b1b1b1; */
+    border-top: none;
 }
