@@ -11,7 +11,7 @@
     --shadow: none;
 }
 
-button {
+button, .linkButton {
     border: 1px solid gray;
     border-radius: 0.25rem;
     background: white;
@@ -19,14 +19,26 @@ button {
     box-shadow: var(--shadow);
     /* font-weight: 500; */
 }
-button:hover {
+button:hover, .linkButton:hover {
     background: #efefef;
     cursor: pointer;
+}
+.linkButton {
+    color: black;
+    text-decoration: none;
+    text-align: center;
+}
+button .fa-solid:hover, .linkButton .fa-solid:hover {
+    background: none!important;
 }
 
 input {
     border-radius: 0.25rem;
     border: 1px solid #767676;
+}
+
+.flip180 {
+    transform: rotate(0.5turn);
 }
 
 .flex-container {         
@@ -35,7 +47,7 @@ input {
     background-color: #ffffff;
     height: 100vh;
     /*gap: 5px;*/
-}      
+}
 .backgroundOverlay {
     display: none;
     position: fixed;
@@ -173,9 +185,18 @@ input {
 #search, #webreg {
     display: none;
 }
-#webreg button {
+#webreg button, #webreg .linkButton {
     margin: 5px;
     padding: 3px;
+    display: flex;
+}
+#webreg .fa-solid {
+    position: relative!important;
+    margin-left: auto;
+}
+#webreg p {
+    margin-left: 6px;
+    margin-right: 5px;
 }
 #input {
     width: 95%;
@@ -222,7 +243,7 @@ but it might have benefits */
 /* .searchResultOuter:hover {
     background-color: #eaeaea;
 } */
-.leftbar .fa-solid, #termSelect .fa-solid, #loginStatus {
+.leftbar .fa-solid, #termSelect .fa-solid, #loginStatus, .notification .fa-xmark, .dropdown li .fa-xmark {
     position: absolute;
     height: 20px;
     width: 20px;
@@ -231,7 +252,7 @@ but it might have benefits */
     border-radius: 10px;
     cursor: pointer;
 }
-.leftbar .fa-solid:hover, #termSelect .fa-solid:hover, #loginStatus:hover {
+.leftbar .fa-solid:hover, #termSelect .fa-solid:hover, #loginStatus:hover, .notification .fa-xmark:hover, .dropdown li .fa-xmark:hover {
     background: #cfcfcf7d;
 }
 .searchResultOuter > .fa-plus,
@@ -436,10 +457,12 @@ but it might have benefits */
     border: 1px solid #767676;
 }
 #schedinput {
-    height: 19px;
+    height: 23px;
     border-top-right-radius: 0rem;
     border-bottom-right-radius: 0rem;
     box-shadow: var(--shadow);
+    width: 100%;
+    box-sizing: border-box;
 }
 #scheddropdown {
     display: none;
@@ -460,15 +483,27 @@ but it might have benefits */
 }
 .dropdown {
     z-index: 2;
+    width: 170px;
+    max-width: 170px;
 }
 .dropdown li {
     color: black;
     list-style-type: none;
     padding: 3px;
+    padding-right: 0px;
+    display: flex;
+    align-items: center;
+    overflow-wrap: anywhere;
 }
 .dropdown li:hover {
-    background: lightgray;
+    background: rgb(235, 235, 235);
     cursor: pointer;
+}
+.dropdown li .fa-xmark {
+    position: relative!important;
+    color: red;
+    margin-left: auto;
+    min-width: 20px;
 }
 .scrollcalcontainer {
     display: flex;
@@ -502,9 +537,7 @@ body::-webkit-scrollbar-track {
 .calsection {
     position: absolute;
     box-sizing: border-box;
-    padding-top: 2px;
-    padding-left: 2px;
-    padding-bottom: 2px;
+    padding: 3px;
     padding-right: 17px;
     line-height: 1em;
     background: #ffcc00;
@@ -537,10 +570,9 @@ body::-webkit-scrollbar-track {
     margin-left: 2px;
 }
 .calpossible {
-    background: pink;
+    background: #FFBFA0;
     opacity: 75%;
     text-align: center;
-    border: 3px solid #fda6b4;
     padding: 1px;
 }
 .calpossiblelist {
@@ -626,4 +658,51 @@ body::-webkit-scrollbar-track {
     /* border-top-style: dashed;
     border-top-color: #b1b1b1; */
     border-top: none;
+}
+.notification {
+    position: absolute;
+    background: white;
+    width: fit-content;
+    max-width: 500px;
+    height: 40px;
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%);
+    text-align: center;
+    border: 1px solid rgb(163 163 163);
+    box-shadow: 0px 0px 3px 0px #aaaaaa;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.5s linear;
+    -webkit-transition: opacity 0.5s linear;
+    display: flex;
+    align-items: center;
+    padding: 3px;
+    border-radius: 7px;
+}
+.notification p {
+    padding-left: 8px;
+    padding-right: 8px;
+    text-align: left;
+    line-height: 14px;
+}
+.notification .fa-solid {
+    position: relative;
+}
+.notification .status {
+    width: 35px;
+    height: 35px;
+    line-height: 35px;
+    font-size: 20px;
+}
+.notification .fa-xmark {
+    min-width: 20px;
+    margin-left: auto;
+}
+.notification.success {
+    background: #ecf7ee;
+    border-color: #c3e5c7;
+}
+.notification.success .status {
+    color: #53b355;
 }

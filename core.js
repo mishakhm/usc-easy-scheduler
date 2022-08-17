@@ -107,6 +107,8 @@ class Course {
         // and checkmark is displayed, remove it
         if (addClassButton.classList.contains('fa-plus')) {
           this.add();
+          notification(
+              'success', this.code + ' was successfully added to "My Classes"');
         } else {
           // Find the matching course in classes array and remove it
           // (using remove.this() can cause unexpected behavior due
@@ -300,6 +302,7 @@ class Section {
     this.section_title = SectionData.section_title;
     this.number_registered = SectionData.number_registered;
     this.spaces_available = SectionData.spaces_available;
+    this.location = SectionData.location;
     if (typeof SectionData.start_time == 'string') {
       this.start_time = SectionData.start_time;
       this.startMinutes = parseInt(SectionData.start_time.slice(-2));
@@ -373,7 +376,7 @@ class Section {
     addElement('p', 'sectionLabel', sectionDiv, this.id + ' ' +
         this.dclass_code + ': ' + this.type);
 
-    // Display days for which this section meets
+    // Display days for which this section meets, as well as location
     let dayText;
     if (typeof this.day == 'string') {
       dayText = this.parsedDay;
@@ -381,7 +384,7 @@ class Section {
       dayText = 'No days listed, times:';
     }
     addElement('p', '', sectionDiv, dayText + ' ' +
-        this.start_time + '-' + this.end_time);
+        this.start_time + '-' + this.end_time + ' in ' + this.location);
 
     // Display instructor name
     addElement('p', '', sectionDiv, this.profList);
@@ -706,14 +709,11 @@ function displayLoadingStatus(done) {
 async function webRegTermSelect(term) {
   try {
     return await fetch('https://my.usc.edu/portal/oasis/webregbridge.php', {method: 'GET'})
-        .then(async function(response1) {
-          console.log(response1);
-
+        .then(async function() {
           const termSelectURL = 'https://webreg.usc.edu/Terms/termSelect?term=' +
           encodeURIComponent(term.number);
           return await fetch(termSelectURL, {method: 'GET'})
               .then((response) => {
-                console.log(response);
                 if (response.url == 'https://webreg.usc.edu/close') {
                   displayLoginStatus(false);
                   return false;
@@ -1005,6 +1005,20 @@ function saveSchedule(name) {
   createScheduleList();
 }
 
+function deleteSchedule(name) {
+  const index = schedules.findIndex((e) => e.name == name);
+  if (index != -1) {
+    schedules.splice(index, 1);
+    saveData('schedules', schedules, term);
+    if (document.getElementById('schedinput').value == name) {
+      document.getElementById('schedinput').value = '';
+      showScheduleSaveStatus(false);
+    }
+    createScheduleList();
+    return true;
+  } else return false;
+}
+
 // Unschedules current schedule and loads the given
 // schedule[] where each element has {prefix, code, id}
 async function loadSchedule(schedule) {
@@ -1035,6 +1049,12 @@ function createScheduleList() {
       // Displays name of loaded schedule in dropdown bar
       document.getElementById('schedinput').value = schedules[i].name;
       showScheduleSaveStatus(true);
+    });
+    // Add button to delete this saved schedule
+    const deleteButton = addElement('i', 'fa-solid fa-xmark', listEntry, '');
+    deleteButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteSchedule(schedules[i].name);
     });
   }
 }
@@ -1425,11 +1445,11 @@ function unshowPossible() {
 // Color each distinct class (not section) on the calendar a different color
 function colorClasses() {
   const colors = [
-    '#1abc9c',
-    '#5bc0de',
-    '#b178aa',
-    '#fc6404',
-    '#fcd444',
+    '#1abc9c', // Purple
+    '#5bc0de', // Green turquoise
+    '#b178aa', // Sky blue
+    '#fc6404', // Orange
+    '#fcd444', // Mustard yellow
     '#fc4444',
     '#f978aa',
     '#8cc43c',
@@ -1742,9 +1762,21 @@ document.getElementById('savesched').addEventListener('click', function() {
 
 // Clear the saved indicator if the user changes the text inside
 // the save schedule bar
-document.getElementById('schedinput').addEventListener('keyup', function() {
-  showScheduleSaveStatus(false);
-});
+document.getElementById('schedinput')
+    .addEventListener('keyup', function(event) {
+      if (event.key != 'Enter') {
+        showScheduleSaveStatus(false);
+      }
+    });
+
+// Save schedule if user presses Enter key inside save schedule input box
+document.getElementById('schedinput')
+    .addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        saveSchedule(event.target.value);
+      }
+    });
 
 // Add update class info functionality to relevant button click
 document.getElementById('update').addEventListener('click', function() {
@@ -1798,11 +1830,6 @@ async function loginTest() {
   displayLoginStatus('loading');
   webRegTermSelect(term);
 }
-
-document.getElementById('login').addEventListener(
-    'click', function() {
-      window.open('https://my.usc.edu');
-    });
 
 document.getElementById('loginStatus').addEventListener(
     'click', function() {
@@ -1876,11 +1903,6 @@ async function pushToCourseBin() {
 document.getElementById('pushCourseBin').addEventListener(
     'click', function() {
       pushToCourseBin();
-    });
-
-document.getElementById('regSchedule').addEventListener(
-    'click', function() {
-      window.open('https://webreg.usc.edu/Register');
     });
 
 // Finds all occurrences of a given substring and returns their indexes
@@ -1967,6 +1989,7 @@ document.getElementById('termSelectLogin')
       termSelect();
     });
 
+// X button in termSelect() closes the term selection popup on click
 document.getElementById('termSelect')
     .getElementsByClassName('fa-xmark')[0]
     .addEventListener('click', function() {
@@ -2003,4 +2026,26 @@ async function saveData(name, value, term) {
         }
         chrome.storage.local.set({[name]: existing});
       });
+}
+
+async function notification(type, text) {
+  const div = addElement('div', 'notification ' + type, document.body, '');
+
+  if (type == 'success') {
+    addElement('i', 'fa-solid fa-circle-check status', div, '');
+  }
+
+  // Add notification text in the center of the popup
+  addElement('p', '', div, text);
+
+  // 'X' button to close notification
+  const closeButton = addElement('i', 'fa-solid fa-xmark', div, '');
+  closeButton.addEventListener('click', function() {
+    div.remove();
+  });
+
+  // Fade in effect
+  setTimeout(function() {
+    div.style.opacity = '1';
+  }, 1);
 }

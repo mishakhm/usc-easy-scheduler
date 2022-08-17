@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Calendar</title>
+        <title>USC Easy Scheduler</title>
         <meta charset="UTF-8">
         <link href="/assets/css/all.css" rel="stylesheet">
         <link rel="stylesheet" href="calendar.css">
@@ -34,13 +34,27 @@
                     <div class="classesContainer" id="searchResultsContainer"></div>
                 </div>
                 <div id="webreg" class="leftbarcontent">
-                    This extension never sees your USC login info,
-                    you just need to be logged in in this browser session
-                    for requests to webreg to work
-                    <button id="login">Log into my.usc.edu</button>
-                    <button id="loadCourseBin">Load Webreg Schedule as Current Schedule</button>
-                    <button id="pushCourseBin">Push Current Schedule to CourseBin</button>
-                    <button id="regSchedule">Register CourseBin</button>
+                    <p>
+                        This extension never sees your USC login info,
+                        you just need to be logged in in this browser session
+                        for requests to webreg to work
+                    </p>
+                    <a id="login" class="linkButton" href="https://my.usc.edu" target="_blank" rel="noopener noreferrer">
+                        Log into my.usc.edu
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                    <button id="loadCourseBin">
+                        Load Schedule from Webreg
+                        <i class="fa-solid fa-arrow-right-to-bracket flip180"></i>
+                    </button>
+                    <button id="pushCourseBin">
+                        Push Current Schedule to CourseBin
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                    <a id="regSchedule" class="linkButton" href="https://webreg.usc.edu/Register" target="_blank" rel="noopener noreferrer">
+                        Register CourseBin
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                 </div>
     
             </div>
