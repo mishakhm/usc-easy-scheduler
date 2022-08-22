@@ -766,6 +766,9 @@ function parseCourseBinElement(element) {
     element.registered = false;
   } else if (registered == 'Y') {
     element.registered = true;
+  } else if (element.Scheduled == 'Block') {
+    // Do nothing as this is a custom user-made event
+    // Could add this functionality one day
   } else {
     throw new Error('CourseBin data is not in the expected format');
   }
@@ -777,6 +780,8 @@ function parseCourseBinElement(element) {
 function scheduleFromParsedBin(courseBin) {
   const sections = [];
   for (let i = 0; i<courseBin.length; i++) {
+    // Skip custom user events
+    if (courseBin[i].Scheduled == 'Block') continue;
     // If the current section is not already in the sections array
     // (by filtering for id match), add the section
     // This is necessary because the courseBin as provided by USC
@@ -1664,7 +1669,7 @@ let classes = [];
 let schedules = [];
 let lastRefresh;
 chrome.storage.local.get(
-    ['term', 'classes', 'schedules', 'lastRefresh'], (data) => {
+    ['term', 'classes', 'schedules', 'lastRefresh', 'firstTime'], (data) => {
       if (typeof data.term == 'undefined') {
         termSelect();
       } else {
@@ -1712,6 +1717,12 @@ chrome.storage.local.get(
           document.getElementById('last').innerHTML = 'Last: never';
         } else {
           document.getElementById('last').innerHTML = 'Last: ' + lastRefresh;
+        }
+
+        // Show first time welcome if this is the user's first time
+        if (typeof data.firstTime == 'undefined') {
+          document.getElementById('firstTimeCarousel').style.display = 'flex';
+          chrome.storage.local.set({'firstTime': false});
         }
       }
     });
@@ -1871,31 +1882,37 @@ document.getElementById('loadCourseBin').addEventListener(
 
 async function pushToCourseBin() {
   displayLoadingStatus(false);
+  try {
+    const courseBinSched = await getCourseBin();
 
-  const courseBinSched = await getCourseBin();
-
-  for (section of courseBinSched.sections) {
-    // If the section in the CourseBin
-    // is not in the current schedule being pushed
-    if (calSections.filter((e) => e.id == section.id).length == 0) {
-      await unscheduleCourseBin(section.id);
-    }
-  }
-
-  for (section of calSections) {
-    // If the section is not already present in the CourseBin schedule
-    if (courseBinSched.sections.filter((e) => e.id == section.id).length == 0) {
-      // Attempt to add the section to CourseBin
-      // If it is not in the CourseBin and is successfully added
-      // (and auto-scheduled), true will be returned.
-      // If it is already in the CourseBin but not scheduled, false will
-      // be returned, and the inside of the if block will schedule it.
-      const scheduled =
-          await addToCourseBin(section.prefix, section.code, section.id);
-      if (!scheduled) {
-        await scheduleCourseBin(section.id);
+    for (section of courseBinSched.sections) {
+      // If the section in the CourseBin
+      // is not in the current schedule being pushed
+      if (calSections.filter((e) => e.id == section.id).length == 0) {
+        await unscheduleCourseBin(section.id);
       }
     }
+
+    for (section of calSections) {
+      // If the section is not already present in the CourseBin schedule
+      if (courseBinSched.sections.filter(
+          (e) => e.id == section.id).length == 0) {
+        // Attempt to add the section to CourseBin
+        // If it is not in the CourseBin and is successfully added
+        // (and auto-scheduled), true will be returned.
+        // If it is already in the CourseBin but not scheduled, false will
+        // be returned, and the inside of the if block will schedule it.
+        const scheduled =
+            await addToCourseBin(section.prefix, section.code, section.id);
+        if (!scheduled) {
+          await scheduleCourseBin(section.id);
+        }
+      }
+    }
+    notification('success', 'Successfully pushed your schedule to CourseBin');
+  } catch (error) {
+    console.error(error);
+    alert('Error pushing your schedule to CourseBin');
   }
   displayLoadingStatus(true);
 }
@@ -2028,7 +2045,7 @@ async function saveData(name, value, term) {
       });
 }
 
-async function notification(type, text) {
+function notification(type, text) {
   const div = addElement('div', 'notification ' + type, document.body, '');
 
   if (type == 'success') {
@@ -2049,3 +2066,69 @@ async function notification(type, text) {
     div.style.opacity = '1';
   }, 1);
 }
+
+function carousel(direction) {
+  const content = document.getElementById('carouselContent').children;
+  const indicators = document.getElementById('carouselIndicators').children;
+
+  let origIndex = findCarouselActive();
+  let newIndex;
+  if (direction == 'right') {
+    if (origIndex + 1 < content.length) {
+      newIndex = origIndex + 1;
+    } else {
+      newIndex = 0;
+    }
+  } else if (direction == 'left') {
+    if (origIndex - 1 >= 0) {
+      newIndex = origIndex - 1;
+    } else {
+      newIndex = content.length - 1;
+    }
+  }
+
+  setCarousel(newIndex, origIndex);
+}
+
+function findCarouselActive() {
+  const content = document.getElementById('carouselContent').children;
+  for (let i = 0; i<content.length; i++) {
+    if (content[i].className.includes('active')) {
+      return i;
+    }
+  }
+}
+
+function setCarousel(newIndex, origIndex) {
+  const content = document.getElementById('carouselContent').children;
+  const indicators = document.getElementById('carouselIndicators').children;
+  content[origIndex].classList.remove('active');
+  indicators[origIndex].classList.remove('fa-circle');
+  indicators[origIndex].classList.add('fa-circle-dot');
+  content[newIndex].classList.add('active');
+  indicators[newIndex].classList.add('fa-circle');
+  indicators[newIndex].classList.remove('fa-circle-dot');
+}
+
+document.getElementsByClassName('carouselControl right')[0]
+    .addEventListener('click', function() {
+      carousel('right');
+    });
+document.getElementsByClassName('carouselControl left')[0]
+    .addEventListener('click', function() {
+      carousel('left');
+    });
+
+const indicators = document.getElementById('carouselIndicators').children;
+for (let i = 0; i<indicators.length; i++) {
+  indicators[i].addEventListener('click', function() {
+    setCarousel(i, findCarouselActive());
+  });
+}
+
+// X button in first time welcome closes the popup on click
+document.getElementById('firstTimeCarousel')
+    .getElementsByClassName('fa-xmark')[0]
+    .addEventListener('click', function() {
+      document.getElementById('firstTimeCarousel').style.display = 'none';
+    });

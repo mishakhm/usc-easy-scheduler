@@ -48,11 +48,11 @@
                         <i class="fa-solid fa-arrow-right-to-bracket flip180"></i>
                     </button>
                     <button id="pushCourseBin">
-                        Push Current Schedule to CourseBin
+                        Push Current Schedule to Webreg
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
-                    <a id="regSchedule" class="linkButton" href="https://webreg.usc.edu/Register" target="_blank" rel="noopener noreferrer">
-                        Register CourseBin
+                    <a id="regSchedule" class="linkButton" href="https://webreg.usc.edu/myCourseBin" target="_blank" rel="noopener noreferrer">
+                        Open Webreg CourseBin
                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     </a>
                 </div>
@@ -451,7 +451,7 @@
             </div>
         </div>
         <div id="termSelect" class="backgroundOverlay">
-            <div>
+            <div class="overlayInner">
                 <p id="termSelectTitle">Select Term</p>
                 <div id="termSelectInner">
                     <i class="fa-solid fa-spinner"></i>
@@ -466,6 +466,34 @@
                 <i class="fa-solid fa-xmark"></i>
             </div>
         </div>
-          <script src="core.js"></script>
+        <div id="firstTimeCarousel" class="backgroundOverlay">
+            <div class="overlayInner carousel">
+                <p>Welcome</p>
+                <div class="carouselInner">
+                    <div id="carouselContent">
+                        <img class="active" src="/assets/images/slides/slide1.png">
+                        <img src="/assets/images/slides/slide2.png">
+                        <video src="/assets/images/slides/slide3.mp4" autoplay muted loop></video>
+                        <img src="/assets/images/slides/slide4.png">
+                        <img src="/assets/images/slides/slide5.png">
+                    </div>
+                    <span class="carouselControl right">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </span>
+                    <span class="carouselControl left">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                </div>
+                <ol id="carouselIndicators">
+                    <i class="fa-solid fa-circle"></i>
+                    <i class="fa-solid fa-circle-dot"></i>
+                    <i class="fa-solid fa-circle-dot"></i>
+                    <i class="fa-solid fa-circle-dot"></i>
+                    <i class="fa-solid fa-circle-dot"></i>
+                </ol>
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+        </div>
+        <script src="core.js"></script>
     </body>
 </html>

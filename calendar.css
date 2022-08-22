@@ -62,7 +62,7 @@ input {
     justify-content: center;
     align-items: center;
 }
-#termSelect > div {
+.overlayInner {
     height: 80%;
     width: 80%;
     background: white;
@@ -72,11 +72,69 @@ input {
     align-items: center;
     position: absolute;
 }
+.overlayInner.carousel {
+    width: 70%;
+}
+.carouselInner {
+    width: 100%;
+    height: 85%;
+}
+#carouselContent {
+    width: 100%;
+    height: 100%;
+}
+#carouselContent img, #carouselContent video {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+#carouselContent img.active, #carouselContent video.active {
+    display: block;
+}
+#carouselIndicators {
+    position: absolute;
+    bottom: 5px;
+    user-select: none;
+}
+#carouselIndicators i:hover {
+    cursor: pointer;
+}
+.carouselControl {
+    position: absolute;
+    top: 7.5%;
+    bottom: 7.5%;
+    width: 10%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #696969;
+}
+.carouselControl:hover {
+    cursor: pointer;
+    color: black;
+}
+.carouselControl i {
+    font-size: 30px;
+}
+.carouselControl.right {
+    right: 0px;
+}
+.carouselControl.right:hover {
+    background: rgb(131,131,131);
+    background: linear-gradient(90deg, rgba(131,131,131,0) 0%, rgba(131,131,131,0.5975432409291841) 100%);
+}
+.carouselControl.left {
+    left: 0px;
+}
+.carouselControl.left:hover {
+    background: rgb(131,131,131);
+    background: linear-gradient(270deg, rgba(131,131,131,0) 0%, rgba(131,131,131,0.5975432409291841) 100%);
+}
 #termSelect .fa-spinner {
     display: none;
     font-size: 30px;
 }
-#termSelect .fa-xmark {
+#termSelect .fa-xmark, .carousel .fa-xmark {
     color: black;
     font-size: 20px;
     height: 25px!important;
@@ -85,6 +143,17 @@ input {
     border-radius: 15px!important;
     top: 10px;
     right: 10px;
+}
+.carousel .fa-xmark {
+    top: 5px;
+    right: 5px;
+}
+.carousel p {
+    position: absolute;
+    top: 5px;
+    font-size: 24px;
+}
+#termSelect .fa-xmark {
     display: none;
 }
 #termSelect .fa-arrows-rotate {
@@ -243,7 +312,7 @@ but it might have benefits */
 /* .searchResultOuter:hover {
     background-color: #eaeaea;
 } */
-.leftbar .fa-solid, #termSelect .fa-solid, #loginStatus, .notification .fa-xmark, .dropdown li .fa-xmark {
+.leftbar .fa-solid, #termSelect .fa-solid, #loginStatus, .notification .fa-xmark, .dropdown li .fa-xmark, .carousel .fa-xmark {
     position: absolute;
     height: 20px;
     width: 20px;
@@ -252,7 +321,7 @@ but it might have benefits */
     border-radius: 10px;
     cursor: pointer;
 }
-.leftbar .fa-solid:hover, #termSelect .fa-solid:hover, #loginStatus:hover, .notification .fa-xmark:hover, .dropdown li .fa-xmark:hover {
+.leftbar .fa-solid:hover, #termSelect .fa-solid:hover, #loginStatus:hover, .notification .fa-xmark:hover, .dropdown li .fa-xmark:hover, .carousel .fa-xmark:hover {
     background: #cfcfcf7d;
 }
 .searchResultOuter > .fa-plus,
