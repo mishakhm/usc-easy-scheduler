@@ -32,7 +32,7 @@ button .fa-solid:hover, .linkButton .fa-solid:hover {
     background: none!important;
 }
 
-input {
+input, .inputLike {
     border-radius: 0.25rem;
     border: 1px solid #767676;
 }
@@ -71,6 +71,65 @@ input {
     justify-content: center;
     align-items: center;
     position: absolute;
+}
+#createCustom {
+    justify-content: flex-start;
+}
+#createCustom .overlayInner {
+    height: 200px;
+    width: 300px;
+    margin-left: 5%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.customTitle {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+    background: var(--main-bg-color);
+    border-bottom: 1px solid #767676;
+}
+.customTitle .fa-xmark {
+    right: 5px;
+}
+.customInput > div {
+    margin-top: 9px;
+    margin-bottom: 9px;
+    height: 23px;
+}
+.customInput > div > p {
+    position: absolute;
+    left: 10%;
+}
+.customInput > div > input, .customInput > div > .inputLike {
+    position: absolute;
+    left: 25%;
+    width: 65%;
+    box-sizing: border-box;
+}
+.customInput > div > .inputLike {
+    display: flex;
+}
+.inputDay {
+    flex: auto;
+    text-align: center;
+    user-select: none;
+}
+.inputDayRight {
+    border-right: 1px solid #767676;
+}
+.inputDay:hover {
+    background: #efefef;
+    cursor: pointer;
+}
+.inputDay.active {
+    background: #606060;
+    color: white;
+}
+.customButtons {
+    padding: 5px;
+    margin-left: auto;
 }
 .overlayInner.carousel {
     width: 70%;
@@ -307,12 +366,7 @@ input {
     user-select: none;
     position: relative;
 }
-/* To me making the whole div grey on hover seems too much and too cluttered
-but it might have benefits */
-/* .searchResultOuter:hover {
-    background-color: #eaeaea;
-} */
-.leftbar .fa-solid, #termSelect .fa-solid, #loginStatus, .notification .fa-xmark, .dropdown li .fa-xmark, .carousel .fa-xmark {
+.iconButton, .leftbar .fa-solid {
     position: absolute;
     height: 20px;
     width: 20px;
@@ -321,7 +375,7 @@ but it might have benefits */
     border-radius: 10px;
     cursor: pointer;
 }
-.leftbar .fa-solid:hover, #termSelect .fa-solid:hover, #loginStatus:hover, .notification .fa-xmark:hover, .dropdown li .fa-xmark:hover, .carousel .fa-xmark:hover {
+.iconButton:hover, .leftbar .fa-solid:hover {
     background: #cfcfcf7d;
 }
 .searchResultOuter > .fa-plus,
@@ -390,9 +444,12 @@ but it might have benefits */
     position: absolute;
     bottom: 5px;
 }
-.extraInfo p{
+.extraInfo{
     font-style: italic;
     font-size: 12px;
+}
+.description {
+    margin-bottom: 3px;
 }
 .searchResultTypeOuter {
     padding: 3px;
@@ -615,6 +672,7 @@ body::-webkit-scrollbar-track {
     font-size: 12px;
     overflow: hidden;
     border-radius: 0.3rem;
+    user-select: none;
 }
 .calsection div {
     font-size: inherit;
@@ -629,6 +687,9 @@ body::-webkit-scrollbar-track {
     height: 14px;
     line-height: 11px;
     -webkit-text-stroke: 0.1px white;
+}
+.calsectionCustom {
+    cursor: pointer;
 }
 .calnumreg {
     position: absolute;

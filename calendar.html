@@ -63,7 +63,7 @@
                 <div class="caltop">
                     <div class="loginStatusDiv">
                         Login status:
-                        <i id="loginStatus" class='fa-solid fa-xmark'></i>
+                        <i id="loginStatus" class='fa-solid fa-xmark iconButton'></i>
                     </div>
                     <button id="termButton">
                         <p id="termButtonText">Select Term</p>
@@ -457,13 +457,13 @@
                     <i class="fa-solid fa-spinner"></i>
                     <div id="termSelectLogin">
                         You must be logged into <a href="https://my.usc.edu" target="_blank" rel="noopener noreferrer">my.usc.edu</a> to view possible terms
-                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <i class="fa-solid fa-arrows-rotate iconButton"></i>
                     </div>
                     <div id="termSelectOptions">
 
                     </div>
                 </div>
-                <i class="fa-solid fa-xmark"></i>
+                <i class="fa-solid fa-xmark iconButton"></i>
             </div>
         </div>
         <div id="firstTimeCarousel" class="backgroundOverlay">
@@ -491,7 +491,45 @@
                     <i class="fa-solid fa-circle-dot"></i>
                     <i class="fa-solid fa-circle-dot"></i>
                 </ol>
-                <i class="fa-solid fa-xmark"></i>
+                <i class="fa-solid fa-xmark iconButton"></i>
+            </div>
+        </div>
+        <div id="createCustom" class ="backgroundOverlay">
+            <div class="overlayInner">
+                <div class="customTitle">
+                    Create Custom Time Block
+                    <i class="fa-solid fa-xmark iconButton"></i>
+                </div>
+                <div class="customInput">
+                    <div>
+                        <p>Label:</p>
+                        <input id="label">
+                    </div>
+                    <div>
+                        <p>Days:</p>
+                        <div class="inputLike">
+                            <a class="inputDay inputDayRight" id="U">Sun</a>
+                            <a class="inputDay inputDayRight" id="M">Mon</a>
+                            <a class="inputDay inputDayRight" id="T">Tue</a>
+                            <a class="inputDay inputDayRight" id="W">Wed</a>
+                            <a class="inputDay inputDayRight" id="H">Thur</a>
+                            <a class="inputDay inputDayRight" id="F">Fri</a>
+                            <a class="inputDay" id="S">Sat</a>
+                        </div>
+                    </div>
+                    <div>
+                        <p>Start:</p>
+                        <input type="time" id="start_time">
+                    </div>
+                    <div>
+                        <p>End:</p>
+                        <input type="time" id="end_time">
+                    </div>
+                </div>
+                <div class="customButtons">
+                    <button id="saveCustom">Save</button>
+                    <button id="cancel"c>Cancel</button>
+                </div>
             </div>
         </div>
         <script src="core.js"></script>

@@ -11,6 +11,7 @@ class Course {
     this.title = CourseData.title;
     this.prereq_text = CourseData.prereq_text;
     this.coreq_text = CourseData.coreq_text;
+    this.description = CourseData.description;
     this.units = '0.0';
     this.sectionTypes = [];
     this.SectionData = [];
@@ -23,8 +24,8 @@ class Course {
           this.units = CourseData.SectionData[i].units;
         }
         // Grab all sections, as Section class objects
-        this.SectionData.push(
-            new Section(CourseData.SectionData[i], this.code, this.prefix));
+        this.SectionData.push(new CourseSection(
+            CourseData.SectionData[i], this.code, this.prefix));
         this.SectionData[i].parent = this;
         // If this section type hasn't been encountered yet,
         // add it to the array
@@ -37,7 +38,7 @@ class Course {
     } else {
       this.units = CourseData.SectionData.units;
       this.SectionData.push(
-          new Section(CourseData.SectionData, this.code, this.prefix));
+          new CourseSection(CourseData.SectionData, this.code, this.prefix));
       this.SectionData[0].parent = this;
       this.sectionTypes.push({type: this.SectionData[0].type});
     }
@@ -133,19 +134,25 @@ class Course {
       });
     }
 
+    // Add course description
+    if (typeof this.description == 'string') {
+      addElement(
+          'p', 'extraInfo description', displayCourseInfo, this.description);
+    }
+
     // Add pre-req and co-req info
     let extraInfo;
     if (typeof this.prereq_text == 'string') {
-      extraInfo = addElement('div', 'extraInfo', displayCourseInfo, '');
-      addElement('p', '', extraInfo,
+      extraInfo = addElement('div', '', displayCourseInfo, '');
+      addElement('p', 'extraInfo', extraInfo,
           'Pre-reqs: ' + this.prereq_text);
     }
     if (typeof this.coreq_text == 'string') {
       if (typeof extraInfo == 'undefined') {
-        extraInfo = addElement('div', 'extraInfo',
+        extraInfo = addElement('div', '',
             displayCourseInfo, '');
       }
-      addElement('p', '', extraInfo,
+      addElement('p', 'extraInfo', extraInfo,
           'Co-reqs: ' + this.coreq_text);
     }
 
@@ -275,8 +282,113 @@ class Course {
 }
 
 class Section {
-  constructor(SectionData, code, prefix) {
+  constructor(SectionData, code) {
     this.code = code;
+    if (typeof SectionData.start_time == 'string') {
+      this.start_time = SectionData.start_time;
+      this.startMinutes = getMinutes(SectionData.start_time);
+      this.startHours = getHours(SectionData.start_time);
+      this.start = this.startMinutes + this.startHours*60;
+    } else {
+      this.start_time = 'TBA';
+    }
+    if (typeof SectionData.end_time == 'string') {
+      this.end_time = SectionData.end_time;
+      this.endMinutes = getMinutes(SectionData.end_time);
+      this.endHours = getHours(SectionData.end_time);
+      this.end = this.endMinutes + this.endHours*60;
+    } else {
+      this.end_time = 'TBA';
+    }
+    this.day = SectionData.day;
+    this.daySections = [];
+    this.parsedDay = '';
+    if (typeof this.day == 'string') {
+      let dayParse = this.day;
+      while (dayParse != '') {
+        const currentDay = dayParse.slice(0, 1);
+        dayParse = dayParse.slice(1);
+        // The daySections array makes work with the calendar easier
+        // Each time a section meets is a distinct daySection
+        // i.e. section 50342 may always be at 8:30
+        // but it meets once on Tuesday (one daySection under 50342)
+        // and once on Thursday (another daySection under 50342)
+        this.daySections.push({day: currentDay});
+        if (currentDay == 'T') {
+          this.parsedDay += 'Tu';
+        } else if (currentDay == 'H') {
+          this.parsedDay += 'Th';
+        } else {
+          this.parsedDay += currentDay;
+        }
+      }
+    }
+  }
+  // Checks if the section conflicts with any already scheduled one
+  // and returns the conflicts
+  conflicts() {
+    const ret = [];
+    for (let i = 0; i<calSections.length; i++) {
+      if ((this.start>=calSections[i].start &&
+          this.start<=calSections[i].end) ||
+          (this.end>=calSections[i].start &&
+          this.end<=calSections[i].end)) {
+        for (let j = 0; j<this.daySections.length; j++) {
+          const matches = calSections[i].daySections.filter(
+              (e) => e.day === this.daySections[j].day);
+          if (matches.length > 0) {
+            ret.push(matches);
+          }
+        }
+      }
+    }
+    return ret;
+  }
+  // Properly positions the section's divs on calendar according to date/time
+  position() {
+    for (let i = 0; i<this.daySections.length; i++) {
+      positionDaySection(this.daySections[i].sectionDiv, this.startHours,
+          this.startMinutes, this.endHours, this.endMinutes,
+          this.daySections[i].day);
+    }
+  }
+  createCalSection(text) {
+    const calendar = document.getElementById('scrollcal');
+    const sectionDiv = addElement('div', 'calsection', calendar, text);
+    // Adds hover text showing the section text (in case text is
+    // too long and gets cut off).
+    // Maybe adds unneccessary clutter?
+    sectionDiv.setAttribute('title', text);
+    // Add unscheduling button to calendar div
+    const unschedButton = addElement(
+        'button', 'fa-solid fa-xmark', sectionDiv, '');
+    unschedButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.unschedule();
+    });
+    return sectionDiv;
+  }
+  removeCalSection() {
+    const index = calSections.indexOf(this);
+    // Remove the html div for the section from the calendar
+    for (let j = 0; j<calSections[index].daySections.length; j++) {
+      calSections[index].daySections[j].sectionDiv.remove();
+    }
+    // Remove the section from the array of scheduled sections
+    calSections.splice(index, 1);
+
+    colorClasses();
+    crossOutConflicts();
+    showScheduleSaveStatus(false);
+    // This is inefficient but currently required to get overlaps to un-overlap
+    setAllSectionPositions();
+  }
+}
+
+class CourseSection extends Section {
+  constructor(SectionData, code, prefix) {
+    super(SectionData, code);
+    this.custom = false;
     this.prefix = prefix;
     this.id = SectionData.id;
     this.instructor = SectionData.instructor;
@@ -303,22 +415,6 @@ class Section {
     this.number_registered = SectionData.number_registered;
     this.spaces_available = SectionData.spaces_available;
     this.location = SectionData.location;
-    if (typeof SectionData.start_time == 'string') {
-      this.start_time = SectionData.start_time;
-      this.startMinutes = parseInt(SectionData.start_time.slice(-2));
-      this.startHours = parseInt(SectionData.start_time.slice(0, 2));
-    } else {
-      this.start_time = 'TBA';
-    }
-    if (typeof SectionData.end_time == 'string') {
-      this.end_time = SectionData.end_time;
-      this.endMinutes = parseInt(SectionData.end_time.slice(-2));
-      this.endHours = parseInt(SectionData.end_time.slice(0, 2));
-    } else {
-      this.end_time = 'TBA';
-    }
-    this.day = SectionData.day;
-    this.daySections = [];
     this.units = SectionData.units;
     if (typeof SectionData.scheduled == 'boolean') {
       this.scheduled = SectionData.scheduled;
@@ -334,27 +430,6 @@ class Section {
       this.pinned = SectionData.pinned;
     } else {
       this.pinned = false;
-    }
-    this.parsedDay = '';
-    if (typeof this.day == 'string') {
-      let dayParse = this.day;
-      while (dayParse != '') {
-        const currentDay = dayParse.slice(0, 1);
-        dayParse = dayParse.slice(1);
-        // The daySections array makes work with the calendar easier
-        // Each time a section meets is a distinct daySection
-        // i.e. section 50342 may always be at 8:30
-        // but it meets once on Tuesday (one daySection under 50342)
-        // and once on Thursday (another daySection under 50342)
-        this.daySections.push({day: currentDay});
-        if (currentDay == 'T') {
-          this.parsedDay += 'Tu';
-        } else if (currentDay == 'H') {
-          this.parsedDay += 'Th';
-        } else {
-          this.parsedDay += currentDay;
-        }
-      }
     }
     this.sched = () => this.schedule();
     this.unsched = () => this.unschedule();
@@ -434,51 +509,16 @@ class Section {
     addTo.appendChild(sectionDiv);
     return this.sectionDiv;
   }
-  // Checks if the section conflicts with any already scheduled ones
-  // If not, creates divs on the calendar for each day of the section
-  conflicts() {
-    const start = this.startMinutes + this.startHours*60;
-    const end = this.endMinutes + this.endHours*60;
-    const ret = [];
-    for (let i = 0; i<calSections.length; i++) {
-      const startCheck = calSections[i].startMinutes +
-          calSections[i].startHours*60;
-      const endCheck = calSections[i].endMinutes +
-          calSections[i].endHours*60;
-
-      if ((start>=startCheck && start<=endCheck) ||
-                (end>=startCheck && end<=endCheck)) {
-        for (let j = 0; j<this.daySections.length; j++) {
-          const matches = calSections[i].daySections.filter(
-              (e) => e.day === this.daySections[j].day);
-          if (matches.length > 0) {
-            ret.push(matches);
-          }
-        }
-      }
-    }
-    return ret;
-  }
   schedule() {
-    const cal = document.getElementById('scrollcal');
-    const unschedButton = [];
     // Creates a div on the calendar for each daySection
     for (let i = 0; i<this.daySections.length; i++) {
-      const sectionDivText = this.code + ': (' + this.id + '), ' +
-              this.type + '. ' + this.profList;
-      const sectionDiv = addElement('div', 'calsection', cal,
-          sectionDivText);
-      // Adds hover text showing the section text (in case text is
-      // too long and gets cut off).
-      // Maybe adds unneccessary clutter?
-      sectionDiv.setAttribute('title', sectionDivText);
+      const sectionDiv = this.createCalSection(
+          this.code + ': (' + this.id + '), ' +
+          this.type + '. ' + this.profList);
       // Make the section draggable
       sectionDiv.setAttribute('draggable', true);
       sectionDiv.addEventListener('dragstart', this.calDragStart);
       sectionDiv.addEventListener('dragend', this.calDragEnd);
-      // Add unscheduling button to calendar div
-      unschedButton.push(addElement(
-          'button', 'fa-solid fa-xmark', sectionDiv, ''));
       // Add number currently registered to calendar div
       const calnumreg =
           addElement('div', 'calnumreg', sectionDiv, this.number_registered +
@@ -495,11 +535,6 @@ class Section {
       }
 
       this.daySections[i].sectionDiv = sectionDiv;
-    }
-    for (let i = 0; i<unschedButton.length; i++) {
-      unschedButton[i].addEventListener('click', () =>
-        this.unschedule(),
-      );
     }
     // Position the newly created div on the calendar based on date/time
     this.position();
@@ -535,14 +570,6 @@ class Section {
     showScheduleSaveStatus(false);
     return true;
   }
-  // Properly positions the section's divs on calendar according to date/time
-  position() {
-    for (let i = 0; i<this.daySections.length; i++) {
-      positionDaySection(this.daySections[i].sectionDiv, this.startHours,
-          this.startMinutes, this.endHours, this.endMinutes,
-          this.daySections[i].day);
-    }
-  }
   unschedule() {
     this.scheduled = false;
     // Change the "unschedule section" button in myClasses to "schedule section"
@@ -559,21 +586,10 @@ class Section {
     this.parent.sectionTypes.filter((e) => e.type == this.type)[0]
         .setDivTitle();
 
-    const index = calSections.indexOf(this);
-    // Remove the html div for the section from the calendar
-    for (let j = 0; j<calSections[index].daySections.length; j++) {
-      calSections[index].daySections[j].sectionDiv.remove();
-    }
-    // Remove the section from the array of scheduled sections
-    calSections.splice(index, 1);
+    this.removeCalSection();
 
     // Save myClasses because this.scheduled has changed
     saveMyClasses();
-    colorClasses();
-    crossOutConflicts();
-    showScheduleSaveStatus(false);
-    // This is inefficient but currently required to get overlaps to un-overlap
-    setAllSectionPositions();
   }
   pin() {
     const displayOrder = this.parent.sectionTypes.filter((e) =>
@@ -676,6 +692,157 @@ class Section {
   }
 }
 
+class CustomSection extends Section {
+  constructor(day, start_time, end_time, code) {
+    super({
+      day: day,
+      start_time: start_time,
+      end_time: end_time,
+    }, code);
+    this.custom = true;
+  }
+  schedule() {
+    // Creates a div on the calendar for each daySection
+    for (let i = 0; i<this.daySections.length; i++) {
+      this.daySections[i].sectionDiv = this.createCalSection(this.code);
+      this.daySections[i].sectionDiv.classList.add('calsectionCustom');
+      // Clicking the section on the calendar opens a popup to edit it
+      this.daySections[i].sectionDiv.addEventListener('click', () =>
+        createCustomPopup(this.day, this.start_time, this));
+    }
+
+    // Position the newly created div on the calendar based on date/time
+    this.position();
+
+    // Add the section to the array of currently scheduled sections
+    calSections.push(this);
+
+    saveData('custom', custom, term);
+
+    colorClasses();
+    crossOutConflicts();
+    fitCalSectionOverlaps();
+    showScheduleSaveStatus(false);
+    return true;
+  }
+  unschedule() {
+    this.removeCalSection();
+    custom.splice(custom.indexOf(this), 1);
+    saveData('custom', custom, term);
+  }
+}
+
+function createCustom(day, start_time, end_time, code) {
+  const sect = new CustomSection(day, start_time, end_time, code);
+  custom.push(sect);
+  saveData('custom', custom, term);
+  sect.schedule();
+}
+
+function createCustomPopup(day, start_time, existing) {
+  const popup = document.getElementById('createCustom');
+  popup.style.display = 'flex';
+  // Clear fields of previous input
+  document.getElementById('label').value = '';
+  document.getElementById('end_time').value = '';
+  const dayButtons = popup.getElementsByClassName('inputDay');
+  for (let i = 0; i<dayButtons.length; i++) {
+    // Pre-activate day buttons fed into function, deactivate all others
+    if (!day.includes(dayButtons[i].id)) {
+      dayButtons[i].classList.remove('active');
+    } else {
+      dayButtons[i].classList.add('active');
+    }
+  }
+  // Pre-fill input with start time fed into function if one exists
+  if (typeof start_time == 'string') {
+    document.getElementById('start_time').value = start_time;
+  }
+  const saveButton = document.getElementById('saveCustom');
+  // If this function is called to update an existing custom section,
+  // store that section's index in the DOM for use upon completing the popup
+  if (typeof existing == 'object') {
+    saveButton.dataset.index = custom.indexOf(existing);
+    document.getElementById('label').value = existing.code;
+    document.getElementById('end_time').value = existing.end_time;
+  } else {
+    saveButton.dataset.index = -1;
+  }
+}
+const popup = document.getElementById('createCustom');
+const dayButtons = popup.getElementsByClassName('inputDay');
+for (let i = 0; i<dayButtons.length; i++) {
+  dayButtons[i].addEventListener('click', function() {
+    dayButtons[i].classList.toggle('active');
+  });
+}
+popup.getElementsByClassName('fa-xmark')[0].addEventListener(
+    'click', function() {
+      popup.style.display = 'none';
+    });
+document.getElementById('cancel').addEventListener(
+    'click', function() {
+      popup.style.display = 'none';
+    });
+
+document.getElementById('saveCustom').addEventListener('click', function(e) {
+  // Show the user an error if they input an end time before the start time
+  const start = getMinutes(document.getElementById('start_time').value) +
+      getHours(document.getElementById('start_time').value)*60;
+  const end = getMinutes(document.getElementById('end_time').value) +
+      getHours(document.getElementById('end_time').value)*60;
+  if (start >= end) {
+    alert('You must enter a start time before the end time');
+    return;
+  } else if (start < 5*60 || start >= 23*60 || end < 5*60 || end >= 23*60) {
+    alert('The selected time is out of bounds');
+    return;
+  }
+  let day ='';
+  const dayButtons = popup.getElementsByClassName('inputDay');
+  for (let i = 0; i<dayButtons.length; i++) {
+    if (dayButtons[i].className.includes('active')) {
+      day = day.concat(dayButtons[i].id);
+    }
+  }
+  // Make a new custom section if createCustomPopup was called without reference
+  // to an existing custom section
+  if (e.target.dataset.index == '-1') {
+    createCustom(
+        day,
+        document.getElementById('start_time').value,
+        document.getElementById('end_time').value,
+        document.getElementById('label').value,
+    );
+  } else {
+    // If called to edit an existing section, update that section by replacing
+    // it with a newly generated one with the new info
+    const index = parseInt(e.target.dataset.index);
+    // Remove old sections on calendar
+    custom[index].removeCalSection();
+    custom[index] = new CustomSection(
+        day,
+        document.getElementById('start_time').value,
+        document.getElementById('end_time').value,
+        document.getElementById('label').value,
+    );
+    custom[index].schedule();
+  }
+  popup.style.display = 'none';
+});
+
+// Add click functionality to the calendar for creating new custom sections
+// at that position
+const calDay = document.getElementsByClassName('cal-day');
+const days = ['U', 'M', 'T', 'W', 'H', 'F', 'S'];
+// The first 7 calDays are in the header, not actual time blocks
+for (let i = 7; i<calDay.length; i++) {
+  calDay[i].addEventListener('click', (e) => {
+    e.stopPropagation();
+    createCustomPopup(days[i%7], genTime(5*60 + Math.trunc((i-7)/7)*30));
+  });
+}
+
 // Deep copies a Section object (inputSection) onto sectionToChange
 // but skips some properties. This is currently only used in updateBasicInfo()
 // so only properties relevant in code after updateBasicInfo()
@@ -695,6 +862,23 @@ function mediumCopy(sectionToChange, inputSection) {
       sectionToChange[property] = inputSection[property];
     }
   }
+}
+
+function getMinutes(timeString) {
+  return parseInt(timeString.slice(-2));
+}
+function getHours(timeString) {
+  return parseInt(timeString.slice(0, 2));
+}
+function genTime(minutes) {
+  let hours = 0;
+  while (minutes >= 60) {
+    minutes -= 60;
+    hours++;
+  }
+  const hourString = String(hours).padStart(2, '0');
+  const minuteString = String(minutes).padStart(2, '0');
+  return hourString + ':' + minuteString;
 }
 
 function displayLoadingStatus(done) {
@@ -717,7 +901,8 @@ async function webRegTermSelect(term) {
                 if (response.url == 'https://webreg.usc.edu/close') {
                   displayLoginStatus(false);
                   return false;
-                } else if (response.url == 'https://webreg.usc.edu/Departments') {
+                } else if (response.url == 'https://webreg.usc.edu/Departments' ||
+                    response.url == 'https://webreg.usc.edu/msg') {
                   displayLoginStatus(true);
                   return true;
                 } else {
@@ -1056,7 +1241,8 @@ function createScheduleList() {
       showScheduleSaveStatus(true);
     });
     // Add button to delete this saved schedule
-    const deleteButton = addElement('i', 'fa-solid fa-xmark', listEntry, '');
+    const deleteButton =
+        addElement('i', 'fa-solid fa-xmark iconButton', listEntry, '');
     deleteButton.addEventListener('click', function(e) {
       e.stopPropagation();
       deleteSchedule(schedules[i].name);
@@ -1076,12 +1262,15 @@ function showScheduleSaveStatus(saved) {
 }
 
 function showAllScheduled() {
-  for (let i=0; i<classes.length; i++) {
+  for (let i = 0; i<classes.length; i++) {
     for (let j = 0; j<classes[i].SectionData.length; j++) {
       if (classes[i].SectionData[j].scheduled) {
         classes[i].SectionData[j].schedule();
       }
     }
+  }
+  for (let i = 0; i<custom.length; i++) {
+    custom[i].schedule();
   }
 }
 
@@ -1324,7 +1513,7 @@ function showPossiblePositions(course, type, current) {
   for (let i=0; i<course.SectionData.length; i++) {
     if (course.SectionData[i].type === type &&
         course.SectionData[i] !== current) {
-      possibleSections.push(new Section(course.SectionData[i]));
+      possibleSections.push(new CourseSection(course.SectionData[i]));
       // Add pointer to the original section in myClasses
       possibleSections[possibleSections.length-1].orig = course.SectionData[i];
     }
@@ -1461,20 +1650,26 @@ function colorClasses() {
     '#2f64c1',
     '#029658',
   ];
-
   // Finds how many distinct classes are scheduled
-  schedClasses = [];
+  const schedClasses = [];
   for (let i = 0; i<calSections.length; i++) {
-    if (!schedClasses.includes(calSections[i].code)) {
+    if (!schedClasses.includes(calSections[i].code) && !calSections[i].custom) {
       schedClasses.push(calSections[i].code);
     }
   }
   // Goes through the scheduled sections and colors them by class
   for (let i = 0; i<calSections.length; i++) {
-    const index =
-      schedClasses.findIndex((element) => element==calSections[i].code);
+    let color;
+    // If the section is a custom section, color it gray
+    // Otherwise use the array of unique classes to assign it the unique color
+    // for its class
+    if (calSections[i].custom) {
+      color = '#c1c1c1';
+    } else {
+      color = colors[schedClasses.findIndex((e) => e==calSections[i].code)];
+    }
     for (let j = 0; j<calSections[i].daySections.length; j++) {
-      calSections[i].daySections[j].sectionDiv.style.background = colors[index];
+      calSections[i].daySections[j].sectionDiv.style.background = color;
     }
   }
 }
@@ -1665,11 +1860,13 @@ document.getElementsByClassName('cal-day')[21].scrollIntoView(true);
 
 const calSections = [];
 let term;
-let classes = [];
+const classes = [];
+const custom = [];
 let schedules = [];
 let lastRefresh;
 chrome.storage.local.get(
-    ['term', 'classes', 'schedules', 'lastRefresh', 'firstTime'], (data) => {
+    ['term', 'classes', 'custom', 'schedules', 'lastRefresh', 'firstTime'],
+    (data) => {
       if (typeof data.term == 'undefined') {
         termSelect();
       } else {
@@ -1681,26 +1878,31 @@ chrome.storage.local.get(
               data.classes.filter((e) => e.term.number == term.number);
           if (termClasses.length == 1) {
             termClasses = termClasses[0].classes;
-          } else {
-            classes = [];
           }
           for (let i = 0; i<termClasses.length; i++) {
             classes.push(new Course(termClasses[i]));
           }
-        } else {
-          classes = [];
+        }
+        if (typeof data.custom != 'undefined') {
+          let termCustom =
+              data.custom.filter((e) => e.term.number == term.number);
+          if (termCustom.length == 1) {
+            termCustom = termCustom[0].custom;
+          }
+          for (let i = 0; i<termCustom.length; i++) {
+            custom.push(new CustomSection(
+                termCustom[i].day, termCustom[i].start_time,
+                termCustom[i].end_time, termCustom[i].code));
+          }
         }
         if (typeof data.schedules != 'undefined') {
-          schedules =
+          termSchedules =
               data.schedules.filter((e) => e.term.number == term.number);
-          if (schedules.length == 1) {
-            schedules = schedules[0].schedules;
-          } else {
-            schedules = [];
+          if (termSchedules.length == 1) {
+            schedules = termSchedules[0].schedules;
           }
-        } else {
-          schedules = [];
-        };
+        }
+
         showMyClasses();
         createScheduleList();
         showAllScheduled();
@@ -1894,6 +2096,8 @@ async function pushToCourseBin() {
     }
 
     for (section of calSections) {
+      // Skip custom sections for now
+      if (section.custom) continue;
       // If the section is not already present in the CourseBin schedule
       if (courseBinSched.sections.filter(
           (e) => e.id == section.id).length == 0) {
@@ -1902,6 +2106,7 @@ async function pushToCourseBin() {
         // (and auto-scheduled), true will be returned.
         // If it is already in the CourseBin but not scheduled, false will
         // be returned, and the inside of the if block will schedule it.
+        console.log(section);
         const scheduled =
             await addToCourseBin(section.prefix, section.code, section.id);
         if (!scheduled) {
@@ -2056,7 +2261,7 @@ function notification(type, text) {
   addElement('p', '', div, text);
 
   // 'X' button to close notification
-  const closeButton = addElement('i', 'fa-solid fa-xmark', div, '');
+  const closeButton = addElement('i', 'fa-solid fa-xmark iconButton', div, '');
   closeButton.addEventListener('click', function() {
     div.remove();
   });
@@ -2067,11 +2272,11 @@ function notification(type, text) {
   }, 1);
 }
 
+// Moves the carousel one slide right or left
 function carousel(direction) {
   const content = document.getElementById('carouselContent').children;
-  const indicators = document.getElementById('carouselIndicators').children;
 
-  let origIndex = findCarouselActive();
+  const origIndex = findCarouselActive();
   let newIndex;
   if (direction == 'right') {
     if (origIndex + 1 < content.length) {
@@ -2090,6 +2295,7 @@ function carousel(direction) {
   setCarousel(newIndex, origIndex);
 }
 
+// Returns index of the active carousel slide
 function findCarouselActive() {
   const content = document.getElementById('carouselContent').children;
   for (let i = 0; i<content.length; i++) {
@@ -2099,6 +2305,8 @@ function findCarouselActive() {
   }
 }
 
+// Activates the given index slide in the carousel
+// and deactivates the old slide
 function setCarousel(newIndex, origIndex) {
   const content = document.getElementById('carouselContent').children;
   const indicators = document.getElementById('carouselIndicators').children;
