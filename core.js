@@ -57,9 +57,6 @@ class Course {
                 e.id == existingType.displayOrder[j].id)[0]);
         }
       }
-      // else{
-      //     this.sectionTypes[i].displayOrder = [];
-      // }
       // Add any missing sections that match the type to the displayOrder
       for (let j = 0; j<this.SectionData.length; j++) {
         if (this.SectionData[j].type ==
@@ -791,6 +788,14 @@ document.getElementById('saveCustom').addEventListener('click', function(e) {
       getHours(document.getElementById('start_time').value)*60;
   const end = getMinutes(document.getElementById('end_time').value) +
       getHours(document.getElementById('end_time').value)*60;
+  if (document.getElementById('end_time').value == '') {
+    alert('You must enter an end time');
+    return;
+  }
+  if (document.getElementById('start_time').value == '') {
+    alert('You must enter a start time');
+    return;
+  }
   if (start >= end) {
     alert('You must enter a start time before the end time');
     return;
@@ -804,6 +809,10 @@ document.getElementById('saveCustom').addEventListener('click', function(e) {
     if (dayButtons[i].className.includes('active')) {
       day = day.concat(dayButtons[i].id);
     }
+  }
+  if (day == '') {
+    alert('You must select at least one day for this custom block');
+    return;
   }
   // Make a new custom section if createCustomPopup was called without reference
   // to an existing custom section
@@ -837,7 +846,7 @@ const calDay = document.getElementsByClassName('cal-day');
 const days = ['U', 'M', 'T', 'W', 'H', 'F', 'S'];
 // The first 7 calDays are in the header, not actual time blocks
 for (let i = 7; i<calDay.length; i++) {
-  calDay[i].addEventListener('click', (e) => {
+  calDay[i].addEventListener('dblclick', (e) => {
     e.stopPropagation();
     createCustomPopup(days[i%7], genTime(5*60 + Math.trunc((i-7)/7)*30));
   });
@@ -930,10 +939,14 @@ async function getCourseBin() {
                 for (let i = 0; i<data.Data.length; i++) {
                   parseCourseBinElement(data.Data[i]);
                 }
-                return scheduleFromParsedBin(data.Data);
+                return data;
               });
         }
       });
+}
+async function getCourseBinAsSchedule() {
+  return await getCourseBin()
+      .then((data) => scheduleFromParsedBin(data.Data));
 }
 
 // Takes in raw courseBin data from USC and extracts info
@@ -952,8 +965,19 @@ function parseCourseBinElement(element) {
   } else if (registered == 'Y') {
     element.registered = true;
   } else if (element.Scheduled == 'Block') {
-    // Do nothing as this is a custom user-made event
-    // Could add this functionality one day
+    element.custom = true;
+    element.code = element.Title;
+    const startParen1 = element.Start.indexOf('(');
+    const startParen2 = element.Start.indexOf(')');
+    const start = new Date(
+        parseInt(element.Start.slice(startParen1+1, startParen2)));
+    element.start_time = genTime(start.getHours()*60 + start.getMinutes());
+    const endParen1 = element.End.indexOf('(');
+    const endParen2 = element.End.indexOf(')');
+    const end = new Date(
+        parseInt(element.End.slice(endParen1+1, endParen2)));
+    element.end_time = genTime(end.getHours()*60 + end.getMinutes());
+    element.day = dayNumToLetter(start.getDay());
   } else {
     throw new Error('CourseBin data is not in the expected format');
   }
@@ -965,19 +989,27 @@ function parseCourseBinElement(element) {
 function scheduleFromParsedBin(courseBin) {
   const sections = [];
   for (let i = 0; i<courseBin.length; i++) {
-    // Skip custom user events
-    if (courseBin[i].Scheduled == 'Block') continue;
-    // If the current section is not already in the sections array
-    // (by filtering for id match), add the section
-    // This is necessary because the courseBin as provided by USC
-    // shows daySections, not overall sections,
-    // and thus has duplicates for our purposes
-    if (sections.filter((e) => e.id == courseBin[i].id).length == 0) {
+    if (!courseBin[i].custom) {
+      // If the current section is not already in the sections array
+      // (by filtering for id match), add the section
+      // This is necessary because the courseBin as provided by USC
+      // shows daySections, not overall sections,
+      // and thus has duplicates for our purposes
+      if (sections.filter((e) => e.id == courseBin[i].id).length == 0) {
+        sections.push({
+          prefix: deptFromCode(courseBin[i].code),
+          code: courseBin[i].code,
+          id: courseBin[i].id,
+          registered: courseBin[i].registered,
+        });
+      }
+    } else {
       sections.push({
-        prefix: deptFromCode(courseBin[i].code),
+        custom: courseBin[i].custom,
         code: courseBin[i].code,
-        id: courseBin[i].id,
-        registered: courseBin[i].registered,
+        day: courseBin[i].day,
+        start_time: courseBin[i].start_time,
+        end_time: courseBin[i].end_time,
       });
     }
   }
@@ -1027,6 +1059,115 @@ async function unscheduleCourseBin(id) {
   return await fetch(url);
   // Unfortunately USC servers do not return a meaningful response
   // for this request
+}
+
+// Pulls coursebin then tries to find a section matching the input parameters,
+// then returns it. Used to retrieve the USC-assigned TaskID and USCID
+async function findTaskUserID(code, start_time, end_time, day) {
+  return await getCourseBin()
+      .then((data) => data.Data.filter((e) =>
+        e.code == code &&
+        e.start_time == start_time &&
+        e.end_time == end_time &&
+        e.day == day)[0]);
+}
+
+// Creates a custom user time block in the USC webreg calendar
+async function scheduleCustomCourseBin(code, start_time, end_time, day) {
+  const baseUrl = 'https://webreg.usc.edu/Scheduler/Create';
+  const selection = new FormData();
+  selection.append('TaskID', '0');
+  selection.append('Title', code);
+  selection.append('Start', genCourseBinDate(start_time, day));
+  selection.append('End', genCourseBinDate(end_time, day));
+  selection.append('IsAllDay', 'false');
+
+  return await fetch(baseUrl, {method: 'POST', body: selection})
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.Data[0].Title == code) {
+          return true;
+        } else {
+          throw new Error('Could not schedule custom section');
+        }
+      });
+}
+// Unschedules a custom user time block in the USC webreg calendar
+async function unscheduleCustomCourseBin(code, start_time, end_time, day) {
+  const baseUrl = 'https://webreg.usc.edu/Scheduler/Destroy';
+  const selection = new FormData();
+  const section = await findTaskUserID(code, start_time, end_time, day);
+  selection.append('TaskID', section.TaskID);
+  selection.append('USCID', section.USCID);
+  selection.append('Title', code);
+  selection.append('TERM', term.number);
+  selection.append('Scheduled', 'Block');
+  selection.append('Start', genCourseBinDate(start_time, day));
+  selection.append('End', genCourseBinDate(end_time, day));
+  selection.append('IsAllDay', 'false');
+
+  return await fetch(baseUrl, {method: 'POST', body: selection})
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.Data[0].Title == code) {
+          return true;
+        } else {
+          throw new Error('Could not unschedule custom section');
+        }
+      });
+}
+// Take in a time string (ex '13:00') and day (ex 'M') and return an ISO-format
+// string for that time and day this week - the format used by USC webreg
+function genCourseBinDate(time, day) {
+  // Make a Date in this week, then adjust the day of the week to match
+  // the inputted custom section
+  const date = new Date();
+  const dayNum = dayLetterToNum(day);
+  while (date.getDay() > dayNum) {
+    date.setDate(date.getDate()-1);
+  }
+  while (date.getDay() < dayNum) {
+    date.setDate(date.getDate()+1);
+  }
+  date.setHours(getHours(time));
+  date.setMinutes(getMinutes(time));
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  return date.toISOString();
+}
+function dayLetterToNum(day) {
+  if (day == 'U') {
+    return 0;
+  } else if (day == 'M') {
+    return 1;
+  } else if (day == 'T') {
+    return 2;
+  } else if (day == 'W') {
+    return 3;
+  } else if (day == 'H') {
+    return 4;
+  } else if (day == 'F') {
+    return 5;
+  } else if (day == 'S') {
+    return 6;
+  }
+}
+function dayNumToLetter(day) {
+  if (day == 0) {
+    return 'U';
+  } else if (day == 1) {
+    return 'M';
+  } else if (day == 2) {
+    return 'T';
+  } else if (day == 3) {
+    return 'W';
+  } else if (day == 4) {
+    return 'H';
+  } else if (day == 5) {
+    return 'F';
+  } else if (day == 6) {
+    return 'S';
+  }
 }
 
 function deptFromCode(code) {
@@ -1172,6 +1313,12 @@ function saveSchedule(name) {
     section.prefix = calSections[i].prefix;
     section.code = calSections[i].code;
     section.id = calSections[i].id;
+    section.custom = calSections[i].custom;
+    if (calSections[i].custom) {
+      section.start_time = calSections[i].start_time;
+      section.end_time = calSections[i].end_time;
+      section.day = calSections[i].day;
+    }
     sections.push(section);
   }
   // If there already exists a schedule with that name, overwrite it
@@ -1215,16 +1362,33 @@ async function loadSchedule(schedule) {
   unscheduleAll();
   // Iterate through each section in the schedule
   for (let i=0; i<schedule.sections.length; i++) {
-    let index = containsClass(classes, schedule.sections[i].code);
-    // If the class is not in myClasses, add it and update the index
-    if (index == -1) {
-      await searchAddClass(
-          schedule.sections[i].prefix, term, schedule.sections[i].code);
-      index = classes.length-1;
+    if (!schedule.sections[i].custom) {
+      let index = containsClass(classes, schedule.sections[i].code);
+      // If the class is not in myClasses, add it and update the index
+      if (index == -1) {
+        await searchAddClass(
+            schedule.sections[i].prefix, term, schedule.sections[i].code);
+        index = classes.length-1;
+      }
+      // Find the section matching the ID and schedule it
+      classes[index].SectionData.filter(
+          (e) => e.id == schedule.sections[i].id)[0].schedule();
+    } else {
+      // Create the custom section if it doesn't closely match one
+      // that already exists
+      if (custom.findIndex((e) =>
+        e.code == schedule.sections[i].code &&
+        e.day.includes(schedule.sections[i].day) &&
+        e.start_time == schedule.sections[i].start_time &&
+        e.end_time == schedule.sections[i].end_time) == -1) {
+        createCustom(
+            schedule.sections[i].day,
+            schedule.sections[i].start_time,
+            schedule.sections[i].end_time,
+            schedule.sections[i].code,
+        );
+      }
     }
-    // Find the section matching the ID and schedule it
-    classes[index].SectionData.filter((e) => e.id == schedule.sections[i].id)[0]
-        .schedule();
   }
 }
 
@@ -1292,20 +1456,7 @@ function positionDaySection(
     document.getElementsByClassName('thead')[0].getBoundingClientRect();
 
   const timeOffset = ((startHours-5)*2+startMinutes/30)*7+7;
-  let dayOffset = 0;
-  if (day == 'M') {
-    dayOffset += 1;
-  } else if (day == 'T') {
-    dayOffset += 2;
-  } else if (day == 'W') {
-    dayOffset += 3;
-  } else if (day == 'H') {
-    dayOffset += 4;
-  } else if (day == 'F') {
-    dayOffset += 5;
-  } else if (day == 'S') {
-    dayOffset += 6;
-  }
+  const dayOffset = dayLetterToNum(day);
   const cellRect = calDay[timeOffset+dayOffset].getBoundingClientRect();
 
   const top = cellRect.y - calDay[7+dayOffset].getBoundingClientRect().y +
@@ -1809,13 +1960,15 @@ async function updateBasicInfo(term) {
 
 async function updateUniqueInfo(term) {
   // Get courseBin schedule
-  const courseBinSched = await getCourseBin();
+  const courseBinSched = await getCourseBinAsSchedule();
   // Add all missing classes
   for (let i = 0; i<courseBinSched.sections.length; i++) {
-    if (containsClass(classes, courseBinSched.sections[i].code) == -1) {
-      // If the class is not in myClasses, search for its data and add it
-      await searchAddClass(courseBinSched.sections[i].prefix, term,
-          courseBinSched.sections[i].code);
+    if (!courseBinSched.sections[i].custom) {
+      if (containsClass(classes, courseBinSched.sections[i].code) == -1) {
+        // If the class is not in myClasses, search for its data and add it
+        await searchAddClass(courseBinSched.sections[i].prefix, term,
+            courseBinSched.sections[i].code);
+      }
     }
   }
   // Update reg info
@@ -2049,13 +2202,13 @@ document.getElementById('loginStatus').addEventListener(
       loginTest();
     });
 
-// Gets parsed courseBin schedule from getCourseBin(), then
+// Gets parsed courseBin schedule from getCourseBinAsSchedule(), then
 // loads the schedule using loadSchedule(),
 // and also sets registration info for those classes that are registered
 async function loadCourseBin() {
   displayLoadingStatus(false);
   try {
-    const courseBinSched = await getCourseBin();
+    const courseBinSched = await getCourseBinAsSchedule();
     await loadSchedule(courseBinSched);
     handleUpdatedRegInfo(courseBinSched);
   } catch (error) {
@@ -2085,32 +2238,54 @@ document.getElementById('loadCourseBin').addEventListener(
 async function pushToCourseBin() {
   displayLoadingStatus(false);
   try {
-    const courseBinSched = await getCourseBin();
+    const courseBinSched = await getCourseBinAsSchedule();
 
     for (section of courseBinSched.sections) {
       // If the section in the CourseBin
       // is not in the current schedule being pushed
-      if (calSections.filter((e) => e.id == section.id).length == 0) {
-        await unscheduleCourseBin(section.id);
+      if (!section.custom) {
+        if (calSections.filter((e) => e.id == section.id).length == 0) {
+          await unscheduleCourseBin(section.id);
+        }
+      } else {
+        if (calSections.filter((e) => e.code == section.code &&
+        e.start_time == section.start_time &&
+        e.end_time == section.end_time &&
+        e.day.includes(section.day)).length == 0) {
+          await unscheduleCustomCourseBin(
+              section.code, section.start_time, section.end_time, section.day);
+        }
       }
     }
 
     for (section of calSections) {
-      // Skip custom sections for now
-      if (section.custom) continue;
-      // If the section is not already present in the CourseBin schedule
-      if (courseBinSched.sections.filter(
-          (e) => e.id == section.id).length == 0) {
-        // Attempt to add the section to CourseBin
-        // If it is not in the CourseBin and is successfully added
-        // (and auto-scheduled), true will be returned.
-        // If it is already in the CourseBin but not scheduled, false will
-        // be returned, and the inside of the if block will schedule it.
-        console.log(section);
-        const scheduled =
-            await addToCourseBin(section.prefix, section.code, section.id);
-        if (!scheduled) {
-          await scheduleCourseBin(section.id);
+      if (section.custom) {
+        for (let i = 0; i<section.daySections.length; i++) {
+          // If the daySection is not already present in the CourseBin schedule
+          if (courseBinSched.sections.filter((e) =>
+            e.code == section.code &&
+            e.start_time == section.start_time &&
+            e.end_time == section.end_time &&
+            e.day == section.daySections[i].day).length == 0) {
+            await scheduleCustomCourseBin(
+                section.code, section.start_time,
+                section.end_time, section.daySections[i].day);
+          }
+        }
+      } else {
+        // If the section is not already present in the CourseBin schedule
+        if (courseBinSched.sections.filter(
+            (e) => e.id == section.id).length == 0) {
+          // Attempt to add the section to CourseBin
+          // If it is not in the CourseBin and is successfully added
+          // (and auto-scheduled), true will be returned.
+          // If it is already in the CourseBin but not scheduled, false will
+          // be returned, and the inside of the if block will schedule it.
+          const scheduled =
+              await addToCourseBin(section.prefix, section.code, section.id);
+          if (!scheduled) {
+            await scheduleCourseBin(section.id);
+          }
         }
       }
     }
@@ -2270,6 +2445,14 @@ function notification(type, text) {
   setTimeout(function() {
     div.style.opacity = '1';
   }, 1);
+
+  // Fade out after a period of time
+  setTimeout(function() {
+    div.style.opacity = '0';
+    setTimeout(function() {
+      div.remove();
+    }, 500);
+  }, 4000);
 }
 
 // Moves the carousel one slide right or left
